@@ -444,6 +444,7 @@ git clone https://github.com/huangwb8/skills.git &&
 说明：
 - `make-latex-model` 是当前正式名称，兼容旧写法 `make_latex_model`
 - `transfer-old-latex-to-new` 是当前正式名称，兼容历史别名 `migrating-latex-templates`
+- 下表版本号为当前仓库内各 `skills/*/config.yaml` 的同步快照；若后续单个 skill 独立升级，以对应 `config.yaml` 与该 skill 自身 `README.md` 为准
 
 #### 📚 文献调研阶段
 - **get-review-theme**：主题提取（从文件/图片/URL/自然语言描述提取结构化综述主题）
@@ -467,6 +468,7 @@ git clone https://github.com/huangwb8/skills.git &&
 #### 📝 SCI 论文写作阶段
 - **paper-write-sci**：SCI 期刊论文写作与修订（支持风格化写作、数字事实核验、逻辑树多轮审查与 PDF/Word 渲染闭环）
 - **paper-explain-figures**：解读论文 Figure 含义，生成高可读性 Markdown 报告（视觉理解 + 源代码检索 + 人工解读三重交叉）
+- **paper-select-journal**：根据 manuscript 与投稿偏好筛选合适的 SCI 期刊，并输出带证据的排序报告（初筛候选池 + 官网/scope 核验 + 近 3 个月 PubMed 相似论文）
 
 #### 🎯 质量保障
 - **nsfc-qc**：标书只读质量控制（多线程并行检查文风生硬、引用真伪与一致性、篇幅与结构分布、逻辑清晰度等；缩写预检按实际渲染顺序做全文级注册表检查，输出标准化 QC 报告）
@@ -483,26 +485,27 @@ git clone https://github.com/huangwb8/skills.git &&
 |------|------|------|------|------|
 | [make-latex-model](skills/make-latex-model/) | v3.1.2 | 🔧 开发 | 面向 ChineseResearchLaTeX 全仓库的模板落地与高保真对齐（正式名；兼容旧写法 `make_latex_model`） | ✅ 稳定 |
 | [complete-example](skills/complete-example/) | v1.4.1 | 🔧 开发 | 智能示例生成和补全 | ✅ 稳定 |
-| [transfer-old-latex-to-new](skills/transfer-old-latex-to-new/) | v2.0.0 | 📝 日常 | 模板迁移与重构编排，支持任意输入并由 AI 自主决定输出（正式名；兼容 `migrating-latex-templates`） | ✅ 稳定 |
+| [transfer-old-latex-to-new](skills/transfer-old-latex-to-new/) | v2.1.0 | 📝 日常 | 模板迁移与重构编排，支持任意输入并由 AI 自主决定输出（正式名；兼容 `migrating-latex-templates`） | ✅ 稳定 |
 | [systematic-literature-review](skills/systematic-literature-review/) | v1.0.9 | 📝 日常 | 令人印象深刻的精准、全面的专家级综述 | ✅ 稳定 |
 | [check-review-alignment](skills/check-review-alignment/) | v1.0.2 | 📝 日常 | 综述引用语义一致性检查 | ✅ 稳定 |
 | [get-review-theme](skills/get-review-theme/) | v1.0.0 | 📝 日常 | 结构化综述主题提取 | ✅ 稳定 |
 | [guide-updater](skills/guide-updater/) | v1.0.0 | 📝 日常 | 项目指南优化与写作规范沉淀 | ✅ 稳定 |
 | [nsfc-code](skills/nsfc-code/) | v1.0.0 | 📝 日常 | NSFC 申请代码推荐（5 组 code1/code2 + 理由，只读） | ✅ 稳定 |
-| [nsfc-abstract](skills/nsfc-abstract/) | v1.0.0 | 📝 日常 | 标题建议 + NSFC 中英文摘要生成（中文≤400字；英文≤4000字符） | ✅ 稳定 |
-| [nsfc-budget](skills/nsfc-budget/) | v0.1.1 | 📝 日常 | NSFC 预算说明书生成（LaTeX 项目 + `budget.pdf`） | 🚧 开发中 |
+| [nsfc-abstract](skills/nsfc-abstract/) | v2.1.2 | 📝 日常 | 标题建议 + NSFC 中英文摘要生成（中文≤400字；英文≤4000字符） | ✅ 稳定 |
+| [nsfc-budget](skills/nsfc-budget/) | v0.1.2 | 📝 日常 | NSFC 预算说明书生成（LaTeX 项目 + `budget.pdf`） | 🚧 开发中 |
 | [nsfc-justification-writer](skills/nsfc-justification-writer/) | v1.0.0 | 📝 日常 | 理论创新导向的立项依据写作 | ✅ 稳定 |
 | [nsfc-research-content-writer](skills/nsfc-research-content-writer/) | v1.0.0 | 📝 日常 | NSFC 研究内容编排写作 | ✅ 稳定 |
 | [nsfc-research-foundation-writer](skills/nsfc-research-foundation-writer/) | v0.1.1 | 📝 日常 | NSFC 研究基础编排写作 | 🚧 开发中 |
-| [nsfc-roadmap](skills/nsfc-roadmap/) | v1.0.5 | 📝 日常 | NSFC 技术路线图生成（.drawio → .svg/.png/.pdf） | ✅ 稳定 |
-| [nsfc-schematic](skills/nsfc-schematic/) | v1.0.5 | 📝 日常 | NSFC 原理图/机制图生成（.drawio → .svg/.png/.pdf） | ✅ 稳定 |
+| [nsfc-roadmap](skills/nsfc-roadmap/) | v1.0.7 | 📝 日常 | NSFC 技术路线图生成（.drawio → .svg/.png/.pdf） | ✅ 稳定 |
+| [nsfc-schematic](skills/nsfc-schematic/) | v1.0.7 | 📝 日常 | NSFC 原理图/机制图生成（.drawio → .svg/.png/.pdf） | ✅ 稳定 |
 | [nsfc-qc](skills/nsfc-qc/) | v1.2.0 | 📝 日常 | NSFC 标书只读质量控制（多线程检查文风/引用/篇幅/逻辑 + 全文级缩写注册表 QC） | ✅ 稳定 |
 | [nsfc-ref-alignment](skills/nsfc-ref-alignment/) | v0.1.1 | 📝 日常 | NSFC 参考文献与正文引用一致性核查（只读） | 🚧 开发中 |
 | [nsfc-reviewers](skills/nsfc-reviewers/) | v1.4.0 | 📝 日常 | NSFC 标书多专家多维度评审模拟（默认 3 组、最多 5 组，含函评/会评给不过判断与资助约束识别） | ✅ 稳定 |
 | [nsfc-length-aligner](skills/nsfc-length-aligner/) | v0.3.1 | 📝 日常 | NSFC 标书篇幅对齐（检查差距 → 扩写/压缩到达标） | 🚧 开发中 |
 | [nsfc-humanization](skills/nsfc-humanization/) | v1.0.0 | 📝 日常 | 去 AI 机器味，使标书读起来像专家亲笔撰写 | ✅ 稳定 |
-| [paper-write-sci](skills/paper-write-sci/) | v0.10.0 | 📝 日常 | SCI 期刊论文写作与修订（风格化写作、数字审查、逻辑审查、PDF/Word 渲染闭环） | 🚧 开发中 |
+| [paper-write-sci](skills/paper-write-sci/) | v0.11.1 | 📝 日常 | SCI 期刊论文写作与修订（风格化写作、数字审查、逻辑审查、PDF/Word 渲染闭环） | 🚧 开发中 |
 | [paper-explain-figures](skills/paper-explain-figures/) | v0.2.0 | 📝 日常 | 解读论文 Figure 含义，生成高可读性 Markdown 报告（视觉理解 + 源代码检索 + 人工解读） | 🚧 开发中 |
+| [paper-select-journal](skills/paper-select-journal/) | v0.3.1 | 📝 日常 | SCI 投稿期刊筛选（稿件画像 + 期刊核验 + 近 3 个月相似论文证据） | 🚧 开发中 |
 
 ---
 

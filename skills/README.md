@@ -61,6 +61,7 @@ graph LR
 说明：
 - `make-latex-model` 是当前正式名称，兼容旧写法 `make_latex_model`
 - `transfer-old-latex-to-new` 是当前正式名称，兼容历史别名 `migrating-latex-templates`
+- 版本号以各 `skills/*/config.yaml` 为单一真相来源；本页仅保留关键能力、适用场景与推荐 Prompt
 
 ### 1. make-latex-model - 样式对齐优化
 
@@ -558,7 +559,7 @@ output_mode：preview（先预览）/ apply（确认后写入）
 
 ### 18. paper-write-sci - SCI 论文写作与修订
 
-**状态**：🚧 开发中（v0.10.0）
+**状态**：🚧 开发中（v0.11.1）
 
 **类型**：📝 日常
 
@@ -583,6 +584,7 @@ output_mode：preview（先预览）/ apply（确认后写入）
 - 数字事实核验：多线程并行审查所有插入数字的来源与一致性
 - 章节角色检查：确保每个章节承担正确的叙事角色（如 Discussion 不重复 Results）
 - 逻辑树多轮审查：结构化检查论证链完整性，最多 3 轮迭代
+- 全文级缩写守卫：按整篇论文所有正文 `.tex` 联合检查首次定义与统一写法
 - PDF + Word 双格式渲染闭环
 
 [详细文档 →](paper-write-sci/SKILL.md)
@@ -621,6 +623,133 @@ output_mode：preview（先预览）/ apply（确认后写入）
 
 ---
 
+### 20. paper-select-journal - SCI 投稿期刊筛选
+
+**状态**：🚧 开发中（v0.3.1）
+
+**类型**：📝 日常
+
+**功能**：根据 manuscript 与用户投稿偏好筛选合适的 SCI 期刊，并输出带证据的 Markdown 排序报告
+
+**使用场景**：
+- 论文初稿基本成型，准备开始选刊
+- 需要同时考虑 scope、业内认可度、风险信号与近期相似论文
+- 不想只听“拍脑袋推荐”，而是希望保留一条可复核的证据链
+
+**推荐 Prompt 模板**：
+
+```text
+请使用 paper-select-journal skill 帮我的论文筛选合适投稿的 SCI 期刊。
+输入：论文全文/摘要/稿件文件 + 我的投稿偏好（如果有）
+输出：1 份 Markdown 选刊报告，按推荐度排序，最多 10 个期刊。
+```
+
+**技能特点**：
+- 先生成稿件画像，再据此规划真正需要核验的候选期刊
+- 基于内置期刊表做最小硬过滤，减少明显不匹配候选
+- 联网核验期刊官网、scope、业内认可度与风险信号
+- 补抓候选期刊最近 3 个月 PubMed 原始论文，给出与稿件主题的语义相关性依据
+- 所有中间文件默认收纳到 `.paper-select-journal/run-<timestamp>/` 隐藏工作区
+
+[详细文档 →](paper-select-journal/README.md)
+
+---
+
+### 21. nsfc-qc - NSFC 标书质量控制
+
+**状态**：✅ 稳定（版本见 `skills/nsfc-qc/config.yaml`）
+
+**类型**：📝 日常
+
+**功能**：对 NSFC 标书做只读质量控制，输出分级问题、证据链与标准化 QC 报告
+
+**使用场景**：
+- 标书初稿或终稿完成后，需要一次系统性体检
+- 想集中排查文风、引用、篇幅、逻辑、缩写、中文排版等问题
+- 希望中间产物隔离在 sidecar 工作区，不污染标书根目录
+
+**推荐 Prompt 模板**：
+
+```text
+请用 nsfc-qc 对 projects/NSFC_Young 做一次质量控制（只读）。要求：
+- 开 5 个 thread（默认串联模式）
+- 每个 thread 做同一份 QC 清单（文风/引用/篇幅/结构/逻辑等）
+- 汇总输出标准化 QC 报告（P0/P1/P2）
+- 严禁修改标书任何内容；只输出报告与建议
+```
+
+**技能特点**：
+- 全程只读：不改 `.tex/.bib/.cls/.sty`
+- 支持文风、引用真伪、逻辑闭环、篇幅结构与缩写规范的多维检查
+- 引用核查采用“硬编码证据包 + AI 语义判断”双层证据链
+- 默认使用“交付目录 + `.nsfc-qc/` sidecar 工作区”隔离中间文件
+
+[详细文档 →](nsfc-qc/README.md)
+
+---
+
+### 22. nsfc-length-aligner - NSFC 标书篇幅对齐
+
+**状态**：🚧 开发中（版本见 `skills/nsfc-length-aligner/config.yaml`）
+
+**类型**：📝 日常
+
+**功能**：检查标书整体与各部分篇幅差距，并指导扩写/压缩到目标区间
+
+**使用场景**：
+- 标书页数或字符预算明显失衡，需要知道短在哪、长在哪
+- 想按实际 `main.tex` 依赖树统计“真正会编译进 PDF 的内容”
+- 希望改完后还能复检，形成稳定闭环
+
+**推荐 Prompt 模板**：
+
+```text
+请使用 nsfc-length-aligner 检查我的标书篇幅。
+输入：projects/NSFC_Young
+要求：按 main.tex 实际编译内容统计各部分篇幅，给出差距报告与扩写/压缩建议。
+```
+
+**技能特点**：
+- 支持按文件/按章节统计篇幅差距
+- 对 `main.tex` 项目会沿 `\input/\include` 依赖树收集实际正文
+- 默认将报告写入 `.nsfc-length-aligner/` 隐藏工作区，避免根目录污染
+- 适合与 `nsfc-reviewers`、`nsfc-qc` 配合，在送审前收紧结构分布
+
+[详细文档 →](nsfc-length-aligner/README.md)
+
+---
+
+### 23. nsfc-humanization - 去 AI 机器味润色
+
+**状态**：✅ 稳定（版本见 `skills/nsfc-humanization/config.yaml`）
+
+**类型**：📝 日常
+
+**功能**：在不新增信息、不破坏 LaTeX 结构的前提下，去除 NSFC 标书中的“机器味”
+
+**使用场景**：
+- 正文已经基本成型，但表达发硬、句式过于模板化
+- 需要保持 `\item`、`\caption{}`、引用 key 和数学公式不变
+- 想做最小改动式润色，而不是整段重写
+
+**推荐 Prompt 模板**：
+
+```text
+请使用 nsfc-humanization 润色以下段落（仅润色表达，不新增信息，不改 LaTeX 结构）：
+
+[粘贴你的标书文本]
+```
+
+**技能特点**：
+- 核心原则是“语义零损失 + 结构保护”
+- 兼容纯文本与 LaTeX 混合文本
+- 支持 `minimal / moderate / aggressive` 三档润色强度
+- 可选输出变更摘要与 STYLE_CARD，便于跨段落保持风格一致
+
+[详细文档 →](nsfc-humanization/README.md)
+
+---
+
 ## 技能依赖关系
 
 某些技能依赖其他技能的输出，形成完整的工作流：
@@ -633,9 +762,13 @@ output_mode：preview（先预览）/ apply（确认后写入）
 - **nsfc系列写作skills**：最终撰写标书各模块（可选依赖 guide-updater 优化的指南）
 - **nsfc-budget**：基于完整正文与补充材料生成预算说明书（通常放在正文接近完成后）
 - **nsfc-roadmap / nsfc-schematic**：基于写作内容生成技术路线图与原理图
+- **nsfc-length-aligner**：在中后期检查总篇幅与章节分布，防止结构失衡
+- **nsfc-humanization**：在定稿前去掉明显“机器味”，保持表达更像人工撰写
+- **nsfc-qc**：在送审前做只读体检，集中排查文风/引用/篇幅/逻辑/缩写问题
 - **nsfc-reviewers**：标书完成后模拟专家评审（依赖标书完整正文）
 - **paper-write-sci**：SCI 论文写作与修订（依赖 LaTeX 论文项目结构）
 - **paper-explain-figures**：论文 Figure 解读（可与 paper-write-sci 配合使用）
+- **paper-select-journal**：论文接近成稿后做期刊筛选（可复用 paper-write-sci 产出的 manuscript）
 
 ### 推荐使用顺序
 
@@ -649,7 +782,16 @@ output_mode：preview（先预览）/ apply（确认后写入）
 6. **nsfc-research-content-writer** → 撰写研究内容
 7. **nsfc-research-foundation-writer** → 撰写研究基础
 8. **nsfc-roadmap** / **nsfc-schematic** → 生成技术路线图与原理图
-9. **nsfc-reviewers** → 模拟专家评审，发现问题并迭代优化
+9. **nsfc-length-aligner** → 对齐整体篇幅与章节分布
+10. **nsfc-humanization** → 去掉明显机器味，做表达层精修
+11. **nsfc-qc** → 做只读质量控制，集中排查问题
+12. **nsfc-reviewers** → 模拟专家评审，发现问题并迭代优化
+
+对于 SCI 论文写作，建议按以下顺序使用技能：
+
+1. **paper-write-sci** → 撰写、修订和结构化审查论文正文
+2. **paper-explain-figures** → 在复杂 Figure 场景下补足读图理解与叙事说明
+3. **paper-select-journal** → 基于接近定稿的 manuscript 做证据驱动的选刊排序
 
 ---
 

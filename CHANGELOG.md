@@ -58,6 +58,7 @@
 
 ### Changed（变更）
 
+- 同步 `skills` 文档总览：更新根级 `README.md` 与 `skills/README.md` 中的 skills 生态说明、版本快照与使用顺序，补入新增的 `paper-select-journal`，并补齐 `nsfc-qc`、`nsfc-length-aligner`、`nsfc-humanization` 在 `skills/README.md` 中缺失的条目，减少总览与各 skill 自身 `config.yaml` / `README.md` 之间的漂移
 - 精简 `skills/paper-write-sci/` 的主技能文档：将章节职责、`.tex` 可读性、数字审查、全文缩写守卫和逻辑审查等长规则块下沉到新增的 `skills/paper-write-sci/references/execution-guards.md`，`SKILL.md` 改为保留触发语义、主流程骨架、边界约束和按需读取入口，降低上下文开销
 - 强化 `skills/paper-write-sci/` 的缩写一致性规则：新增全文级 `abbreviation_check` 配置，要求先建立 `analysis/abbreviation-inventory.md`，并按整篇论文所有正文 `.tex` 联合判断首次定义与统一写法；相关 `SKILL.md`、Skill README、风格参考与说明文档已同步，避免把缩写检查误降级为“当前 tex 文件内自洽”
 - 压缩 `skills/systematic-literature-review/`、`skills/nsfc-roadmap/`、`skills/nsfc-schematic/`、`skills/nsfc-reviewers/`、`skills/complete-example/`、`skills/nsfc-qc/`、`skills/nsfc-justification-writer/`、`skills/check-review-alignment/`、`skills/nsfc-humanization/`、`skills/make-latex-model/`、`skills/get-review-theme/` 的 `SKILL.md`：保留触发语义、输入输出契约、关键路径与脚本入口，删除重复角色铺垫、长示例与低价值展开，便于降低 `./skills` 的工作类 Markdown 上下文开销
