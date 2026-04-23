@@ -811,6 +811,13 @@ PlanName = 借鉴roadmap-优化-v202602191311
 
 ---
 
+nsfc-roadmap 和 nsfc-schematic 的 nano banana 模式优化：
+
+- 除了兼容 nano banana， 还要支持 gpt-image-2 模型，这是最近openai比较惊艳的一个模型，你可以联网了解一下它怎么用； 然后兼容openai 的api就行。 这个难度应该不大
+- 你可以在 .env 里添加一个示例用法； 但是，这个文件不能被git跟踪，因为它具有敏感信息
+
+---
+
 nsfc-roadmap 和 nsfc-schematic 的 nano banana 模式 优化
 
 - 严禁生成的图片里带有图的总标题。 因为放入标书时这个总标题会被删除，所以没有意义。 

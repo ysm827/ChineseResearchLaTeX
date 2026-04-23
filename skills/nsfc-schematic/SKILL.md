@@ -1,9 +1,9 @@
 ---
 name: nsfc-schematic
-description: 当用户明确要求"生成 NSFC 原理图/机制图/schematic diagram/mechanism diagram"或需要把标书中的研究机制、算法架构、模块关系转成"可编辑 + 可嵌入文档"的图示时使用。默认输出可编辑源文件（`.drawio`）与渲染文件（`.pdf`/`.svg`/`.png`）；当用户主动提及 Nano Banana/Gemini 图片模型时，可切换为 PNG-only 模式。⚠️ 不适用：用户只是想润色正文文本（应直接改写文本）、只是想改已有图片格式/尺寸（应使用图片处理技能）、没有明确"原理图/机制图"意图。
+description: 当用户明确要求"生成 NSFC 原理图/机制图/schematic diagram/mechanism diagram"或需要把标书中的研究机制、算法架构、模块关系转成"可编辑 + 可嵌入文档"的图示时使用。默认输出可编辑源文件（`.drawio`）与渲染文件（`.pdf`/`.svg`/`.png`）；当用户主动提及 Nano Banana 图片模型时，可切换为 PNG-only 模式，并兼容 Gemini 与 OpenAI `gpt-image-2`。⚠️ 不适用：用户只是想润色正文文本（应直接改写文本）、只是想改已有图片格式/尺寸（应使用图片处理技能）、没有明确"原理图/机制图"意图。
 metadata:
   author: Bensz Conan
-  short-description: 生成 NSFC 原理图（默认 drawio + PDF/SVG/PNG；可选 Nano Banana PNG-only）
+  short-description: 生成 NSFC 原理图（默认 drawio + PDF/SVG/PNG；可选 Nano Banana PNG-only，兼容 Gemini/OpenAI）
   keywords:
     - nsfc-schematic
     - nsfc
@@ -24,7 +24,7 @@ metadata:
 ## 定位
 
 - 把机制链、算法架构、模块关系或实验闭环画成可编辑、可嵌入的科研图。
-- 默认使用 `drawio` 生成 `drawio/pdf/svg/png`；只有用户明确要求 Nano Banana/Gemini 时才允许切到 PNG-only。
+- 默认使用 `drawio` 生成 `drawio/pdf/svg/png`；只有用户明确要求 Nano Banana 图片模型时才允许切到 PNG-only。
 - 仅用于科研写作与表达优化，不代表评审口径。
 
 ## 输入
@@ -64,7 +64,7 @@ metadata:
 - `ai/`：`stop_strategy=ai_critic` 工作区
 - `legacy/`：历史残留收纳区
 
-Nano Banana / Gemini 模式仅交付：
+Nano Banana 模式仅交付：
 
 - `schematic.png`
 - `schematic_compacted.png`
@@ -121,7 +121,7 @@ python3 nsfc-schematic/scripts/generate_schematic.py \
   - `ai_critic_response.yaml`
   - `ai_pack_round_XX/`
 
-### 5. 可选：Nano Banana / Gemini PNG-only
+### 5. 可选：Nano Banana PNG-only（Gemini / OpenAI `gpt-image-2`）
 
 - 只有用户明确要求时启用。
 - 先做连通性检查：
@@ -129,6 +129,8 @@ python3 nsfc-schematic/scripts/generate_schematic.py \
 ```bash
 python3 nsfc-schematic/scripts/nano_banana_check.py
 ```
+
+- `.env` 中可通过 `IMAGE_PROVIDER=openai` 切到 OpenAI；未显式指定时，默认优先沿用既有 `GEMINI_*` 配置。
 
 - 再执行 PNG-only 生成：
 

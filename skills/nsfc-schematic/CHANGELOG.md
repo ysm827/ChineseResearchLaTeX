@@ -10,6 +10,11 @@
 
 ### Changed（变更）
 
+- **v1.0.7 → v1.0.8**：Nano Banana 模式新增 OpenAI Image API 兼容层，支持在 `.env` 中通过 `IMAGE_PROVIDER=openai` + `OPENAI_IMAGE_MODEL=gpt-image-2` 切换到 OpenAI，同时保留既有 Gemini 工作流
+- `scripts/nano_banana_client.py`：新增 provider 自动识别与 OpenAI `images/generations` / `images/edits` 调用封装；多参考图、4K 对齐、debug 证据与重试逻辑同步兼容
+- `scripts/nano_banana_check.py` / `scripts/nano_banana_generate_png.py`：CLI 帮助与输出口径更新为 Gemini/OpenAI 双 provider
+- `scripts/generate_schematic.py`：Nano Banana 预检查改为“配置解析优先、生成时再正式调用”，避免 OpenAI 路径在正式出图前多做一次高成本图像请求
+- 文档同步：`SKILL.md`、`README.md`
 - **v1.0.6 → v1.0.7**：Nano Banana 模式新增“严禁图内总标题”硬约束；无论默认 prompt、`patch` 还是 `full` 覆盖，都不会再要求生成图的总标题
 - `scripts/generate_schematic.py`：把“禁总标题”加入每轮强制护栏，确保宿主 AI 覆盖 prompt 后仍然生效
 - `tests/比例锁定-v20260307/test_aspect_ratio_lock.py`：新增“guard 明确禁止总标题”的回归断言

@@ -1,9 +1,9 @@
 ---
 name: nsfc-roadmap
-description: 当用户明确要求"生成 NSFC 技术路线图/技术路线图绘制/roadmap/flowchart"或需要把标书研究内容转成"可打印、A4 可读"的技术路线图时使用。默认输出可编辑源文件（`.drawio`）与可嵌入文档的渲染结果（`.svg`/`.png`/`.pdf`）；当用户主动提及 Nano Banana/Gemini 图片模型时，可切换为 PNG-only 模式。⚠️ 不适用：用户只是想修改某张已有图片的格式/尺寸（应使用图片处理技能）、只是想润色技术路线文字描述（应直接改写正文）。
+description: 当用户明确要求"生成 NSFC 技术路线图/技术路线图绘制/roadmap/flowchart"或需要把标书研究内容转成"可打印、A4 可读"的技术路线图时使用。默认输出可编辑源文件（`.drawio`）与可嵌入文档的渲染结果（`.svg`/`.png`/`.pdf`）；当用户主动提及 Nano Banana 图片模型时，可切换为 PNG-only 模式，并兼容 Gemini 与 OpenAI `gpt-image-2`。⚠️ 不适用：用户只是想修改某张已有图片的格式/尺寸（应使用图片处理技能）、只是想润色技术路线文字描述（应直接改写正文）。
 metadata:
   author: Bensz Conan
-  short-description: 生成 NSFC 技术路线图（默认 drawio + SVG/PNG/PDF；可选 Nano Banana PNG-only）
+  short-description: 生成 NSFC 技术路线图（默认 drawio + SVG/PNG/PDF；可选 Nano Banana PNG-only，兼容 Gemini/OpenAI）
   keywords:
     - nsfc-roadmap
     - nsfc
@@ -24,7 +24,7 @@ metadata:
 ## 定位
 
 - 用于把 NSFC 标书中的研究内容、技术路线和风险控制转成可打印、A4 可读的路线图。
-- 默认工作流是确定性的 `drawio` 渲染；只有用户明确要求 Nano Banana/Gemini 时才允许切到 PNG-only。
+- 默认工作流是确定性的 `drawio` 渲染；只有用户明确要求 Nano Banana 图片模型时才允许切到 PNG-only。
 - 本技能只服务科研写作与可视化表达，不代表任何官方评审口径或资助结论。
 
 ## 输入
@@ -64,7 +64,7 @@ metadata:
 - `config_local.yaml`
 - `ai/`：`stop_strategy=ai_critic` 时的请求/响应协议
 
-Nano Banana / Gemini 模式仅交付：
+Nano Banana 模式仅交付：
 
 - `roadmap.png`
 - `roadmap_compacted.png`
@@ -125,7 +125,7 @@ python3 nsfc-roadmap/scripts/generate_roadmap.py \
   - `ai_critic_response.yaml`
   - 每轮 `ai_pack_round_XX/`
 
-### 6. 可选：Nano Banana / Gemini PNG-only
+### 6. 可选：Nano Banana PNG-only（Gemini / OpenAI `gpt-image-2`）
 
 - 只有用户明确要求时才启用。
 - 先做连通性检查：
@@ -133,6 +133,8 @@ python3 nsfc-roadmap/scripts/generate_roadmap.py \
 ```bash
 python3 nsfc-roadmap/scripts/nano_banana_check.py
 ```
+
+- `.env` 中可通过 `IMAGE_PROVIDER=openai` 切到 OpenAI；未显式指定时，默认优先沿用既有 `GEMINI_*` 配置。
 
 - 然后再生成 PNG：
 

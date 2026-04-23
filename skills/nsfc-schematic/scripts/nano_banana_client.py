@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import math
 import re
@@ -19,29 +20,50 @@ _MAX_REFERENCE_IMAGES = MAX_REFERENCE_IMAGES
 
 
 @dataclass(frozen=True)
-class GeminiConfig:
+class ImageProviderConfig:
+    provider: str
     base_url: str
     api_key: str
     model: str
     dotenv_path: Optional[Path]
 
 
-class GeminiHTTPError(RuntimeError):
-    def __init__(self, code: int, reason: str, detail: str):
+GeminiConfig = ImageProviderConfig
+
+
+class ImageHTTPError(RuntimeError):
+    def __init__(self, code: int, reason: str, detail: str, *, headers: Optional[Dict[str, str]] = None):
         super().__init__(f"HTTP {code} {reason}: {detail}")
         self.code = int(code)
         self.reason = str(reason)
         self.detail = str(detail)
+        self.headers = dict(headers or {})
 
 
-def load_gemini_config(*, dotenv_path: Optional[Path] = None, search_from: Optional[Path] = None) -> GeminiConfig:
+def _normalize_provider(value: str) -> str:
+    v = str(value or "").strip().lower().replace("-", "_")
+    if v in {"gemini", "google"}:
+        return "gemini"
+    if v in {"openai", "gpt_image_2", "gptimage2"}:
+        return "openai"
+    return ""
+
+
+def _has_any_value(env: Dict[str, str], keys: List[str]) -> bool:
+    return any(str(env.get(k, "") or "").strip() for k in keys)
+
+
+def load_image_provider_config(
+    *,
+    dotenv_path: Optional[Path] = None,
+    search_from: Optional[Path] = None,
+) -> ImageProviderConfig:
     """
-    Load Gemini config from user's `.env` (preferred) and environment variables (override).
+    Load image provider config from user's `.env` (preferred) and environment variables (override).
 
-    Expected variables (any of the following):
-    - GEMINI_BASE_URL (e.g. https://generativelanguage.googleapis.com/v1beta)
-    - GEMINI_API / GEMINI_API_KEY / GOOGLE_API_KEY
-    - GEMINI_MODEL (e.g. gemini-3.1-flash-image-preview)
+    Supported providers:
+    - gemini: Nano Banana / Gemini image models
+    - openai: OpenAI Image API (e.g. gpt-image-2)
     """
     if dotenv_path is None:
         start = (search_from or Path.cwd()).resolve()
@@ -49,41 +71,99 @@ def load_gemini_config(*, dotenv_path: Optional[Path] = None, search_from: Optio
 
     env = merged_env(dotenv_path=dotenv_path)
 
-    base_url = str(env.get("GEMINI_BASE_URL", "") or "").strip()
-    api_key = str(env.get("GEMINI_API_KEY", "") or env.get("GEMINI_API", "") or env.get("GOOGLE_API_KEY", "") or "").strip()
-    model = str(env.get("GEMINI_MODEL", "") or "").strip()
+    explicit_provider = _normalize_provider(
+        str(env.get("IMAGE_PROVIDER", "") or env.get("NANO_BANANA_PROVIDER", "") or env.get("IMAGE_API_PROVIDER", "") or "")
+    )
+    has_gemini = _has_any_value(env, ["GEMINI_API", "GEMINI_API_KEY", "GOOGLE_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL"])
+    has_openai = _has_any_value(env, ["OPENAI_API_KEY", "OPENAI_API", "OPENAI_IMAGE_MODEL", "OPENAI_MODEL", "OPENAI_BASE_URL", "OPENAI_API_BASE"])
 
-    missing: List[str] = []
-    if not base_url:
-        missing.append("GEMINI_BASE_URL")
-    if not api_key:
-        missing.append("GEMINI_API / GEMINI_API_KEY / GOOGLE_API_KEY")
-    if not model:
-        missing.append("GEMINI_MODEL")
-    if missing:
-        hint = "，".join(missing)
-        fatal(
-            "未检测到 Gemini 配置（缺少：{}）。\n"
-            "请在项目根目录 `.env` 或系统环境变量中配置 Gemini：\n"
-            "- GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta\n"
-            "- GEMINI_API=你的 API Key\n"
-            "- GEMINI_MODEL=gemini-3.1-flash-image-preview\n".format(hint)
+    provider = explicit_provider
+    if not provider:
+        if has_gemini:
+            provider = "gemini"
+        elif has_openai:
+            provider = "openai"
+
+    if provider == "gemini":
+        base_url = str(env.get("GEMINI_BASE_URL", "") or "").strip()
+        api_key = str(env.get("GEMINI_API_KEY", "") or env.get("GEMINI_API", "") or env.get("GOOGLE_API_KEY", "") or "").strip()
+        model = str(env.get("GEMINI_MODEL", "") or "").strip()
+
+        missing: List[str] = []
+        if not base_url:
+            missing.append("GEMINI_BASE_URL")
+        if not api_key:
+            missing.append("GEMINI_API / GEMINI_API_KEY / GOOGLE_API_KEY")
+        if not model:
+            missing.append("GEMINI_MODEL")
+        if missing:
+            hint = "，".join(missing)
+            fatal(
+                "未检测到 Gemini 配置（缺少：{}）。\n"
+                "请在项目根目录 `.env` 或系统环境变量中配置 Gemini：\n"
+                "- GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta\n"
+                "- GEMINI_API=你的 API Key\n"
+                "- GEMINI_MODEL=gemini-3.1-flash-image-preview\n".format(hint)
+            )
+        return ImageProviderConfig(
+            provider="gemini",
+            base_url=base_url.rstrip("/"),
+            api_key=api_key,
+            model=model,
+            dotenv_path=dotenv_path,
         )
 
-    base_url = base_url.rstrip("/")
-    return GeminiConfig(base_url=base_url, api_key=api_key, model=model, dotenv_path=dotenv_path)
+    if provider == "openai":
+        base_url = str(env.get("OPENAI_BASE_URL", "") or env.get("OPENAI_API_BASE", "") or "https://api.openai.com/v1").strip()
+        api_key = str(env.get("OPENAI_API_KEY", "") or env.get("OPENAI_API", "") or "").strip()
+        model = str(env.get("OPENAI_IMAGE_MODEL", "") or env.get("OPENAI_MODEL", "") or "gpt-image-2").strip()
+
+        missing = []
+        if not api_key:
+            missing.append("OPENAI_API_KEY")
+        if missing:
+            hint = "，".join(missing)
+            fatal(
+                "未检测到 OpenAI 图片模型配置（缺少：{}）。\n"
+                "请在项目根目录 `.env` 或系统环境变量中配置 OpenAI：\n"
+                "- IMAGE_PROVIDER=openai\n"
+                "- OPENAI_BASE_URL=https://api.openai.com/v1\n"
+                "- OPENAI_API_KEY=你的 API Key\n"
+                "- OPENAI_IMAGE_MODEL=gpt-image-2\n".format(hint)
+            )
+        return ImageProviderConfig(
+            provider="openai",
+            base_url=base_url.rstrip("/"),
+            api_key=api_key,
+            model=model,
+            dotenv_path=dotenv_path,
+        )
+
+    fatal(
+        "未检测到可用的图片模型配置。\n"
+        "请配置以下任一方案：\n"
+        "1. Gemini Nano Banana：GEMINI_BASE_URL + GEMINI_API + GEMINI_MODEL\n"
+        "2. OpenAI 图片模型：IMAGE_PROVIDER=openai + OPENAI_API_KEY + OPENAI_IMAGE_MODEL=gpt-image-2\n"
+    )
+    raise AssertionError("unreachable")
 
 
-def _post_json(
+def load_gemini_config(*, dotenv_path: Optional[Path] = None, search_from: Optional[Path] = None) -> ImageProviderConfig:
+    return load_image_provider_config(dotenv_path=dotenv_path, search_from=search_from)
+
+
+def _request_json(
     url: str,
-    payload: Dict[str, Any],
+    payload: Optional[Dict[str, Any]] = None,
     *,
+    method: str = "POST",
     headers: Optional[Dict[str, str]] = None,
     timeout_s: int = 60,
 ) -> Dict[str, Any]:
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    req = urllib.request.Request(url, data=body, method="POST")
-    req.add_header("Content-Type", "application/json")
+    body = None if payload is None else json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    req = urllib.request.Request(url, data=body, method=method.upper())
+    if body is not None:
+        req.add_header("Content-Type", "application/json")
     req.add_header("Accept", "application/json")
     if headers:
         for k, v in headers.items():
@@ -98,7 +178,12 @@ def _post_json(
             detail = raw.decode("utf-8", errors="replace")
         except Exception:
             detail = str(raw)
-        raise GeminiHTTPError(int(exc.code), str(exc.reason), detail[:1200]) from exc
+        hdrs = {}
+        try:
+            hdrs = {str(k): str(v) for k, v in exc.headers.items()}
+        except Exception:
+            hdrs = {}
+        raise ImageHTTPError(int(exc.code), str(exc.reason), detail[:1200], headers=hdrs) from exc
     except Exception as exc:
         raise RuntimeError(f"请求失败：{exc}") from exc
 
@@ -111,7 +196,69 @@ def _post_json(
     return obj
 
 
-def generate_content(cfg: GeminiConfig, payload: Dict[str, Any], *, timeout_s: int = 120) -> Dict[str, Any]:
+def _post_multipart_json(
+    url: str,
+    *,
+    fields: List[Tuple[str, str]],
+    files: List[Tuple[str, str, bytes, str]],
+    headers: Optional[Dict[str, str]] = None,
+    timeout_s: int = 60,
+) -> Dict[str, Any]:
+    boundary = f"----CodexBoundary{int(time.time() * 1000)}"
+    body = bytearray()
+
+    for name, value in fields:
+        body.extend(f"--{boundary}\r\n".encode("utf-8"))
+        body.extend(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode("utf-8"))
+        body.extend(str(value).encode("utf-8"))
+        body.extend(b"\r\n")
+
+    for name, filename, raw, mime in files:
+        body.extend(f"--{boundary}\r\n".encode("utf-8"))
+        body.extend(
+            f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'.encode("utf-8")
+        )
+        body.extend(f"Content-Type: {mime}\r\n\r\n".encode("utf-8"))
+        body.extend(raw)
+        body.extend(b"\r\n")
+
+    body.extend(f"--{boundary}--\r\n".encode("utf-8"))
+
+    req = urllib.request.Request(url, data=bytes(body), method="POST")
+    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+    req.add_header("Accept", "application/json")
+    if headers:
+        for k, v in headers.items():
+            req.add_header(k, v)
+
+    try:
+        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+            data = resp.read()
+    except urllib.error.HTTPError as exc:
+        raw = exc.read()
+        try:
+            detail = raw.decode("utf-8", errors="replace")
+        except Exception:
+            detail = str(raw)
+        hdrs = {}
+        try:
+            hdrs = {str(k): str(v) for k, v in exc.headers.items()}
+        except Exception:
+            hdrs = {}
+        raise ImageHTTPError(int(exc.code), str(exc.reason), detail[:1200], headers=hdrs) from exc
+    except Exception as exc:
+        raise RuntimeError(f"请求失败：{exc}") from exc
+
+    try:
+        obj = json.loads(data.decode("utf-8"))
+    except Exception as exc:
+        raise RuntimeError(f"响应 JSON 解析失败：{exc}") from exc
+    if not isinstance(obj, dict):
+        raise RuntimeError("响应不是 JSON object")
+    return obj
+
+
+def generate_content(cfg: ImageProviderConfig, payload: Dict[str, Any], *, timeout_s: int = 120) -> Dict[str, Any]:
     """
     Call Gemini REST API: models.generateContent
 
@@ -121,14 +268,37 @@ def generate_content(cfg: GeminiConfig, payload: Dict[str, Any], *, timeout_s: i
     endpoint = f"{cfg.base_url}/models/{cfg.model}:generateContent"
     headers = {"x-goog-api-key": cfg.api_key}
     try:
-        return _post_json(endpoint, payload, headers=headers, timeout_s=timeout_s)
-    except GeminiHTTPError as exc:
+        return _request_json(endpoint, payload, headers=headers, timeout_s=timeout_s)
+    except ImageHTTPError as exc:
         # Fallback: only for auth-related failures; do NOT retry on 4xx payload errors.
         if exc.code not in {401, 403}:
             raise
         warn(f"Gemini header 认证失败（HTTP {exc.code}），尝试回退到 query key（可能是代理网关限制）。")
         endpoint2 = f"{endpoint}?key={cfg.api_key}"
-        return _post_json(endpoint2, payload, headers=None, timeout_s=timeout_s)
+        return _request_json(endpoint2, payload, headers=None, timeout_s=timeout_s)
+
+
+def _openai_auth_headers(api_key: str) -> Dict[str, str]:
+    return {"Authorization": f"Bearer {api_key}"}
+
+
+def _openai_health_check(cfg: ImageProviderConfig, *, timeout_s: int = 30) -> None:
+    headers = _openai_auth_headers(cfg.api_key)
+    try:
+        resp = _request_json(f"{cfg.base_url}/models/{cfg.model}", method="GET", headers=headers, timeout_s=timeout_s)
+        model_id = str(resp.get("id", "") or "").strip()
+        if model_id and model_id != cfg.model:
+            warn(f"OpenAI 模型探测返回 id={model_id}，与期望 {cfg.model} 不完全一致。")
+    except ImageHTTPError as exc:
+        if exc.code not in {404, 405}:
+            raise
+        warn(f"OpenAI `/models/{cfg.model}` 不可用（HTTP {exc.code}），改为检查 `/models` 列表。")
+        resp = _request_json(f"{cfg.base_url}/models", method="GET", headers=headers, timeout_s=timeout_s)
+        data = resp.get("data")
+        if isinstance(data, list):
+            ids = {str(item.get("id", "") or "").strip() for item in data if isinstance(item, dict)}
+            if ids and cfg.model not in ids:
+                warn(f"OpenAI `/models` 未列出 {cfg.model}；若你的代理网关支持自定义 image model，仍可继续尝试生成。")
 
 
 def nano_banana_health_check(
@@ -136,11 +306,27 @@ def nano_banana_health_check(
     dotenv_path: Optional[Path] = None,
     search_from: Optional[Path] = None,
     timeout_s: int = 30,
-) -> GeminiConfig:
+    verify_remote: bool = True,
+) -> ImageProviderConfig:
     """
-    Validate that user's `.env` Gemini config can reach the model.
+    Validate that user's `.env` image-model config can reach the model.
     """
-    cfg = load_gemini_config(dotenv_path=dotenv_path, search_from=search_from)
+    cfg = load_image_provider_config(dotenv_path=dotenv_path, search_from=search_from)
+    if not verify_remote:
+        info(
+            "Nano Banana 兼容图片模型配置已加载："
+            f"provider={cfg.provider}, model={cfg.model}, base_url={cfg.base_url}, api_key={mask_secret(cfg.api_key)}"
+        )
+        return cfg
+
+    if cfg.provider == "openai":
+        _openai_health_check(cfg, timeout_s=timeout_s)
+        info(
+            "Nano Banana(OpenAI) 连通性检查通过："
+            f"model={cfg.model}, base_url={cfg.base_url}, api_key={mask_secret(cfg.api_key)}"
+        )
+        return cfg
+
     payload: Dict[str, Any] = {
         "contents": [{"role": "user", "parts": [{"text": "ping"}]}],
         "generationConfig": {"responseModalities": ["TEXT"], "maxOutputTokens": 16, "temperature": 0.0},
@@ -196,6 +382,25 @@ def _extract_inline_images(resp: Dict[str, Any]) -> List[Tuple[str, bytes]]:
     return out
 
 
+def _extract_openai_images(resp: Dict[str, Any]) -> List[Tuple[str, bytes]]:
+    out: List[Tuple[str, bytes]] = []
+    data = resp.get("data")
+    if not isinstance(data, list):
+        return out
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        b64 = item.get("b64_json") or item.get("b64Json")
+        if not isinstance(b64, str) or not b64.strip():
+            continue
+        try:
+            raw = base64.b64decode(b64)
+        except Exception:
+            continue
+        out.append(("image/png", raw))
+    return out
+
+
 def _best_image(images: List[Tuple[str, bytes]]) -> Optional[Tuple[str, bytes]]:
     if not images:
         return None
@@ -242,6 +447,17 @@ def _choose_image_size(w: int, h: int) -> str:
     return "IMAGE_SIZE_4K"
 
 
+def _choose_openai_size(w: int, h: int) -> str:
+    if h <= 0:
+        return "1024x1024"
+    ratio = float(w) / float(h)
+    if ratio >= 1.15:
+        return "1536x1024"
+    if ratio <= (1.0 / 1.15):
+        return "1024x1536"
+    return "1024x1024"
+
+
 _NANO_BANANA_LONG_SIDE_PX = 3840  # UHD 4K long edge lower bound (pixels)
 
 
@@ -269,6 +485,10 @@ def _infer_image_mime(path: Path, raw: bytes) -> str:
         return "image/webp"
 
     raise RuntimeError(f"不支持的参考图片格式：{path}（仅支持 png/jpg/jpeg/webp）")
+
+
+def _sha256_bytes(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
 
 
 def _target_4k_dims(canvas_w: int, canvas_h: int) -> Tuple[int, int]:
@@ -323,7 +543,7 @@ def _maybe_resize_to_canvas(png_path: Path, *, target_w: int, target_h: int) -> 
 
 def nano_banana_generate_png(
     *,
-    cfg: GeminiConfig,
+    cfg: ImageProviderConfig,
     prompt: str,
     output_png: Path,
     canvas_w: int,
@@ -343,6 +563,20 @@ def nano_banana_generate_png(
     - reference_images: optional list of 1..N images (preferred)
     - reference_png: legacy single-image alias (kept for backward compatibility)
     """
+    if cfg.provider == "openai":
+        _openai_generate_png(
+            cfg=cfg,
+            prompt=prompt,
+            output_png=output_png,
+            canvas_w=canvas_w,
+            canvas_h=canvas_h,
+            reference_images=reference_images,
+            reference_png=reference_png,
+            debug_dir=debug_dir,
+            timeout_s=timeout_s,
+        )
+        return
+
     aspect = _choose_aspect_ratio(canvas_w, canvas_h)
     size = _choose_image_size(canvas_w, canvas_h)
 
@@ -443,7 +677,7 @@ def nano_banana_generate_png(
             resp = generate_content(cfg, payload, timeout_s=timeout_s)
             last_err = None
             break
-        except GeminiHTTPError as exc:
+        except ImageHTTPError as exc:
             last_err = exc
             if exc.code not in {429, 503}:
                 raise
@@ -472,6 +706,175 @@ def nano_banana_generate_png(
     if "png" not in mime:
         warn(f"Gemini 返回图片 mime 不是 PNG（{mime}），仍将按 PNG 写出（若无法打开请检查响应）。")
 
+    output_png.parent.mkdir(parents=True, exist_ok=True)
+    output_png.write_bytes(raw)
+    tw, th = _target_4k_dims(int(canvas_w), int(canvas_h))
+    _maybe_resize_to_canvas(output_png, target_w=int(tw), target_h=int(th))
+
+
+def _openai_generate_png(
+    *,
+    cfg: ImageProviderConfig,
+    prompt: str,
+    output_png: Path,
+    canvas_w: int,
+    canvas_h: int,
+    reference_images: Optional[List[Path]] = None,
+    reference_png: Optional[Path] = None,
+    debug_dir: Optional[Path] = None,
+    timeout_s: int = 180,
+) -> None:
+    size = _choose_openai_size(canvas_w, canvas_h)
+    headers = _openai_auth_headers(cfg.api_key)
+
+    refs: List[Path] = []
+    if reference_png is not None:
+        refs.append(Path(reference_png))
+    if reference_images:
+        refs.extend([Path(p) for p in reference_images if p is not None])
+
+    seen: set[str] = set()
+    refs2: List[Path] = []
+    for p in refs:
+        try:
+            key = str(p.resolve())
+        except Exception:
+            key = str(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        refs2.append(p)
+    refs = refs2
+
+    if len(refs) > MAX_REFERENCE_IMAGES:
+        warn(f"参考图片数量过多（{len(refs)}），仅取前 {MAX_REFERENCE_IMAGES} 张。")
+        refs = refs[:MAX_REFERENCE_IMAGES]
+
+    for rp in refs:
+        if not rp.exists() or not rp.is_file():
+            raise RuntimeError(f"参考图片不存在或不是文件：{rp}")
+
+    if debug_dir is not None:
+        debug_dir.mkdir(parents=True, exist_ok=True)
+
+    if not refs:
+        payload: Dict[str, Any] = {"model": cfg.model, "prompt": prompt, "size": size, "n": 1}
+        if debug_dir is not None:
+            (debug_dir / "nano_banana_request.json").write_text(
+                json.dumps(
+                    {"provider": cfg.provider, "base_url": cfg.base_url, "model": cfg.model, "payload": payload},
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+        attempts = 0
+        last_err: Optional[Exception] = None
+        while attempts < 5:
+            attempts += 1
+            try:
+                resp = _request_json(
+                    f"{cfg.base_url}/images/generations",
+                    payload=payload,
+                    headers=headers,
+                    timeout_s=timeout_s,
+                )
+                last_err = None
+                break
+            except ImageHTTPError as exc:
+                last_err = exc
+                if exc.code not in {429, 500, 502, 503, 504}:
+                    raise
+                retry_header = str(exc.headers.get("Retry-After", "") or "").strip()
+                try:
+                    wait_s = float(retry_header) if retry_header else min(30.0, 2.0**attempts)
+                except Exception:
+                    wait_s = min(30.0, 2.0**attempts)
+                warn(f"OpenAI 图片生成暂时失败（HTTP {exc.code}），{wait_s:.1f}s 后重试（{attempts}/5）...")
+                time.sleep(max(0.5, float(wait_s)))
+        else:
+            resp = {}
+        if last_err is not None:
+            raise last_err
+    else:
+        files: List[Tuple[str, str, bytes, str]] = []
+        file_name = "image" if len(refs) == 1 else "image[]"
+        file_debug: List[Dict[str, Any]] = []
+        for rp in refs:
+            raw = rp.read_bytes()
+            mime = _infer_image_mime(rp, raw)
+            files.append((file_name, rp.name, raw, mime))
+            file_debug.append(
+                {
+                    "field": file_name,
+                    "name": rp.name,
+                    "mime": mime,
+                    "bytes": len(raw),
+                    "sha256": _sha256_bytes(raw),
+                }
+            )
+        fields = [("model", cfg.model), ("prompt", prompt), ("size", size), ("n", "1")]
+        if debug_dir is not None:
+            (debug_dir / "nano_banana_request.json").write_text(
+                json.dumps(
+                    {
+                        "provider": cfg.provider,
+                        "base_url": cfg.base_url,
+                        "model": cfg.model,
+                        "fields": fields,
+                        "files": file_debug,
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+        attempts = 0
+        last_err = None
+        while attempts < 5:
+            attempts += 1
+            try:
+                resp = _post_multipart_json(
+                    f"{cfg.base_url}/images/edits",
+                    fields=fields,
+                    files=files,
+                    headers=headers,
+                    timeout_s=timeout_s,
+                )
+                last_err = None
+                break
+            except ImageHTTPError as exc:
+                last_err = exc
+                if exc.code not in {429, 500, 502, 503, 504}:
+                    raise
+                retry_header = str(exc.headers.get("Retry-After", "") or "").strip()
+                try:
+                    wait_s = float(retry_header) if retry_header else min(30.0, 2.0**attempts)
+                except Exception:
+                    wait_s = min(30.0, 2.0**attempts)
+                warn(f"OpenAI 图片编辑暂时失败（HTTP {exc.code}），{wait_s:.1f}s 后重试（{attempts}/5）...")
+                time.sleep(max(0.5, float(wait_s)))
+        else:
+            resp = {}
+        if last_err is not None:
+            raise last_err
+
+    if debug_dir is not None:
+        (debug_dir / "nano_banana_response.json").write_text(
+            json.dumps(resp, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+    images = _extract_openai_images(resp)
+    best = _best_image(images)
+    if best is None:
+        excerpt = json.dumps(resp, ensure_ascii=False)[:800]
+        raise RuntimeError(f"未从 OpenAI 响应中提取到图片（b64_json）。response_excerpt={excerpt}")
+    _, raw = best
     output_png.parent.mkdir(parents=True, exist_ok=True)
     output_png.write_bytes(raw)
     tw, th = _target_4k_dims(int(canvas_w), int(canvas_h))

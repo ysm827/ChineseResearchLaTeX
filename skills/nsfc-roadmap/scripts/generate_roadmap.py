@@ -1498,7 +1498,7 @@ def main() -> None:
             if not p.exists() or not p.is_file():
                 fatal(f"--style-ref 参考图片不存在或不是文件：{p}")
 
-    gemini_cfg = None
+    image_model_cfg = None
     if renderer_backend == "nano_banana":
         # Nano Banana (Gemini image model) only supports PNG output.
         config = deepcopy(config)
@@ -1511,11 +1511,13 @@ def main() -> None:
         cfg_round_base = _apply_config_local(config, local_cfg)
 
         try:
-            gemini_cfg = nano_banana_health_check(dotenv_path=args.dotenv, search_from=Path.cwd())
+            image_model_cfg = nano_banana_health_check(
+                dotenv_path=args.dotenv, search_from=Path.cwd(), verify_remote=False
+            )
         except Exception as exc:
             fatal(
-                "已选择 --renderer nano_banana，但 Nano Banana 连通性检查失败。\n"
-                "请检查项目根目录 `.env` 中的 GEMINI_* 配置是否正确，并确认网络可用。\n"
+                "已选择 --renderer nano_banana，但图片模型配置解析失败。\n"
+                "请检查项目根目录 `.env` 中的 `IMAGE_PROVIDER`、`GEMINI_*` 或 `OPENAI_*` 配置是否正确。\n"
                 f"错误：{exc}"
             )
 
@@ -1957,7 +1959,7 @@ def main() -> None:
                         lines.append(f"{kind}\t{p.name}\tbytes={size_b}\tsha256={h}")
                     write_text(round_dir / "nano_banana_reference_images.txt", "\n".join(lines) + "\n")
                 nano_banana_generate_png(
-                    cfg=gemini_cfg,
+                    cfg=image_model_cfg,
                     prompt=prompt,
                     output_png=out_png,
                     canvas_w=cw,

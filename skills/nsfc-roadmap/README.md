@@ -5,7 +5,7 @@
 
 ## 这是什么
 
-为 NSFC 标书生成可打印、A4 可读的技术路线图，默认输出 `.drawio` 可编辑源文件与 `.svg`/`.png`/`.pdf` 渲染结果；当你明确提出使用 Nano Banana/Gemini 图片模型时，可切换为 **PNG-only**（交付 `roadmap.png` + `roadmap_compacted.png`）。
+为 NSFC 标书生成可打印、A4 可读的技术路线图，默认输出 `.drawio` 可编辑源文件与 `.svg`/`.png`/`.pdf` 渲染结果；当你明确提出使用 Nano Banana 图片模型时，可切换为 **PNG-only**（交付 `roadmap.png` + `roadmap_compacted.png`），并兼容 Gemini 与 OpenAI `gpt-image-2`。
 
 **核心价值**：
 - 从标书 `.tex` 自动抽取研究内容 → 生成结构化 spec
@@ -14,7 +14,7 @@
 - 输出 draw.io 源文件，可继续人工微调
 - 默认生成“主线箭头”（`Phase1 → Phase2 → …`），让成品更像路线图而不是贴纸盒子
 - A4 打印可读（字号、间距、配色均针对打印优化）
-- 可选 Nano Banana / Gemini PNG-only（仅当你明确要求；适合“不要 draw.io、只要 PNG 交付”）
+- 可选 Nano Banana PNG-only（兼容 Gemini / OpenAI `gpt-image-2`；仅当你明确要求；适合“不要 draw.io、只要 PNG 交付”）
 
 **重要声明**：本技能生成的技术路线图仅用于写作与展示优化，不代表任何官方评审口径或资助结论。
 
@@ -27,16 +27,16 @@
 | **输出格式** | `.drawio` + `.svg` + `.png` + `.pdf` | `roadmap.png`（4K）+ `roadmap_compacted.png`（更小体积） |
 | **矢量图** | ✅ SVG 矢量，可无损缩放 | ❌ 仅位图 |
 | **可编辑性** | ✅ 用 draw.io 打开可直接拖拽微调 | ❌ 不可后期编辑 |
-| **出图质量** | 取决于多轮优化轮次 | 高（Gemini 图片模型直接生成） |
+| **出图质量** | 取决于多轮优化轮次 | 高（Gemini 或 OpenAI 图片模型直接生成） |
 | **出图速度** | 较慢（多轮评估-优化循环） | 快 |
 | **调整成本** | 高（多轮对话 + 理解 spec/yaml 结构） | 低（重跑即可） |
 | **中文渲染** | 稳定（受本机字体影响） | 偶有扭曲/模糊风险 |
-| **额外配置** | 无 | 需要配置 Gemini API（见下文） |
+| **额外配置** | 无 | 需要配置 Gemini 或 OpenAI 图片 API（见下文） |
 | **触发方式** | 默认启用 | 需明确说"用 Nano Banana 出图" |
 
 **如何选择**：
 - 优先用 **draw.io 模式**：需要嵌入标书的矢量图、需要后期精修布局、对图面质量有严格要求。
-- 选 **Nano Banana 模式**：已配置 Gemini API、追求快速出图、接受仅 PNG 交付、不需要矢量格式。
+- 选 **Nano Banana 模式**：已配置 Gemini API 或 OpenAI 图片 API、追求快速出图、接受仅 PNG 交付、不需要矢量格式。
 
 ## 快速开始
 
@@ -90,10 +90,10 @@ python3 nsfc-roadmap/scripts/generate_roadmap.py \
   --rounds 5
 ```
 
-#### Nano Banana / Gemini PNG-only（脚本调用）
+#### Nano Banana PNG-only（Gemini / OpenAI `gpt-image-2`，脚本调用）
 
 ```bash
-# 连通性检查（读取 .env / 环境变量 GEMINI_*）
+# 连通性检查（读取 .env / 环境变量中的 IMAGE_PROVIDER / GEMINI_* / OPENAI_*）
 python3 nsfc-roadmap/scripts/nano_banana_check.py
 
 # PNG-only 生成（仅当你明确提出）
@@ -188,15 +188,26 @@ roadmap_output/
 
 **PNG-only 模式**：交付 `roadmap.png`（4K）+ `roadmap_compacted.png`（更小体积；适合嵌入标书 PDF；不会生成 `.drawio/.svg/.pdf`）。
 
-## Gemini API 配置（Nano Banana 模式）
+## 图片模型 API 配置（Nano Banana 模式）
 
-如果你要使用 **Nano Banana / Gemini PNG-only**，需先配置 Gemini API（项目根目录 `.env` 或系统环境变量）：
+如果你要使用 **Nano Banana PNG-only**，可选择 Gemini 或 OpenAI（项目根目录 `.env` 或系统环境变量）：
 
 ```bash
+# 方案 A：Gemini Nano Banana（默认兼容路径）
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 GEMINI_API=你的API密钥
 GEMINI_MODEL=gemini-3.1-flash-image-preview
+
+# 方案 B：OpenAI gpt-image-2
+IMAGE_PROVIDER=openai
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=你的API密钥
+OPENAI_IMAGE_MODEL=gpt-image-2
 ```
+
+说明：
+- 若未显式设置 `IMAGE_PROVIDER`，脚本会优先沿用现有 `GEMINI_*` 配置，以保持旧工作流兼容。
+- 若同时配置了 Gemini 和 OpenAI，建议显式写 `IMAGE_PROVIDER=openai`，避免 provider 推断歧义。
 
 连通性验证：
 
@@ -225,7 +236,7 @@ python3 nsfc-roadmap/scripts/nano_banana_check.py
 
 - 脚本每次只渲染/评估 1 轮，并在 `output_dir/.nsfc-roadmap/ai/{run_dir}/` 生成证据包与 `ai_critic_request.md`
 - 你（宿主 AI）阅读证据包后，把结构化响应写入 `ai_critic_response.yaml`（spec/config_local patch + stop/continue）
-- 若 `--renderer nano_banana`（Gemini PNG-only），证据包还会包含 `nano_banana_prompt.md`；你也可在响应中提供 `nano_banana_prompt` 字段来控制下一轮传给 Gemini 的 prompt（含 `nano_banana_prompt_only` action）；脚本会在每一轮真正发送前自动补齐字体/文字排版硬约束，避免多轮自优化时字体约束漂移，并强制禁止图内总标题
+- 若 `--renderer nano_banana`（Gemini/OpenAI PNG-only），证据包还会包含 `nano_banana_prompt.md`；你也可在响应中提供 `nano_banana_prompt` 字段来控制下一轮传给图片模型的 prompt（含 `nano_banana_prompt_only` action）；脚本会在每一轮真正发送前自动补齐字体/文字排版硬约束，避免多轮自优化时字体约束漂移，并强制禁止图内总标题
 - 再次运行脚本即可自动应用 patch 并进入下一轮（不在脚本内调用外部模型 API）
 
 > 推荐做法：把 `evaluation.stop_strategy: ai_critic` 写到 `output_dir/.nsfc-roadmap/config_local.yaml`，作为”仅本次实例生效”的开关。

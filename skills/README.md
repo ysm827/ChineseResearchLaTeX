@@ -344,6 +344,7 @@ output_mode：preview（先预览）/ apply（确认后写入）
 - 多轮评估-优化（默认 5 轮），三维度自检（结构/视觉/可读性）
 - "平台期停止"策略：基于 PNG 哈希与分数提升阈值自动停止
 - 支持规划模式：纯 AI 规划（默认），先审阅 `roadmap-plan.md` 再生成
+- Nano Banana PNG-only 模式兼容 Gemini 与 OpenAI `gpt-image-2`
 
 [详细文档 →](nsfc-roadmap/SKILL.md)
 
@@ -378,6 +379,7 @@ output_mode：preview（先预览）/ apply（确认后写入）
 - 默认关闭图内标题，避免标题与分组冲突；支持按需开启
 - 图类型参考图（5 类常用骨架 + 多个 `model-xx` 视觉参考）+ “模型画廊”（skeleton/simple 优先）用于学习结构与风格（默认纯 AI 规划，不要求模板单选）
 - 支持规划模式：先审阅 `schematic-plan.md` 再生成
+- Nano Banana PNG-only 模式兼容 Gemini 与 OpenAI `gpt-image-2`
 
 [详细文档 →](nsfc-schematic/SKILL.md)
 

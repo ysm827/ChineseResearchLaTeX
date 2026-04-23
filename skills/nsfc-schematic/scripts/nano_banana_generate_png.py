@@ -3,12 +3,12 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from nano_banana_client import load_gemini_config, nano_banana_generate_png
+from nano_banana_client import load_image_provider_config, nano_banana_generate_png
 from utils import fatal, info, read_text
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Generate a PNG with Gemini Nano Banana (image model).")
+    p = argparse.ArgumentParser(description="Generate a PNG with a Nano Banana-compatible image model (Gemini/OpenAI).")
     p.add_argument("--prompt-file", type=Path, required=True)
     p.add_argument("--output-png", type=Path, required=True)
     p.add_argument("--canvas-w", type=int, default=3200)
@@ -29,7 +29,7 @@ def main() -> None:
     except Exception as exc:
         fatal(f"读取 prompt 失败：{exc}")
 
-    cfg = load_gemini_config(dotenv_path=args.dotenv, search_from=Path.cwd())
+    cfg = load_image_provider_config(dotenv_path=args.dotenv, search_from=Path.cwd())
     try:
         nano_banana_generate_png(
             cfg=cfg,
@@ -43,7 +43,7 @@ def main() -> None:
     except Exception as exc:
         fatal(f"生成 PNG 失败：{exc}")
 
-    info(f"完成：{args.output_png}")
+    info(f"完成：{args.output_png}（provider={cfg.provider}, model={cfg.model}）")
 
 
 if __name__ == "__main__":

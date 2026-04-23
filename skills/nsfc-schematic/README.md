@@ -43,22 +43,22 @@
 | **输出格式** | `.drawio` + `.svg` + `.png` + `.pdf` | `schematic.png`（4K）+ `schematic_compacted.png`（更小体积） |
 | **矢量图** | ✅ SVG 矢量，可无损缩放 | ❌ 仅位图 |
 | **可编辑性** | ✅ 用 draw.io 打开可直接拖拽微调 | ❌ 不可后期编辑 |
-| **出图质量** | 取决于多轮优化轮次 | 高（Gemini 图片模型直接生成） |
+| **出图质量** | 取决于多轮优化轮次 | 高（Gemini 或 OpenAI 图片模型直接生成） |
 | **出图速度** | 较慢（多轮评估-优化循环） | 快 |
 | **调整成本** | 高（多轮对话 + 理解 spec/yaml 结构） | 低（重跑即可） |
 | **中文渲染** | 稳定（受本机字体影响） | 偶有扭曲/模糊风险 |
-| **额外配置** | 无 | 需要配置 Gemini API（见下文） |
+| **额外配置** | 无 | 需要配置 Gemini 或 OpenAI 图片 API（见下文） |
 | **触发方式** | 默认启用 | 需明确说"用 Nano Banana 出图" |
 
 **如何选择**：
 - 优先用 **draw.io 模式**：需要嵌入标书的矢量图、需要后期精修布局、对图面质量有严格要求。
-- 选 **Nano Banana 模式**：已配置 Gemini API、追求快速出图、接受仅 PNG 交付、不需要矢量格式。
+- 选 **Nano Banana 模式**：已配置 Gemini API 或 OpenAI 图片 API、追求快速出图、接受仅 PNG 交付、不需要矢量格式。
 
 ## 设计理念
 
 - **默认 draw.io**：优先输出可编辑的 `schematic.drawio` 与矢量交付（`svg/pdf`），适合标书嵌入。
 - **可追溯优化**：多轮评估 + 证据产出（`evaluation.json`/`measurements.json` 等）。
-- **PNG-only 备用通道**：当你明确要求 Nano Banana/Gemini 模式时，生成 **4K** `schematic.png` + 更小体积的 `schematic_compacted.png`（适合嵌入标书 PDF）。
+- **PNG-only 备用通道**：当你明确要求 Nano Banana 图片模式时，生成 **4K** `schematic.png` + 更小体积的 `schematic_compacted.png`（适合嵌入标书 PDF），兼容 Gemini 与 OpenAI `gpt-image-2`。
 
 ## 功能概述
 
@@ -70,30 +70,38 @@
 | 证据可追溯 | 每轮输出 `evaluation.json`/`measurements.json` 等 |
 | 并行对比 | 推荐 `parallel-vibe` 5 线程做多策略对比 |
 
-## Gemini API 配置（Nano Banana 模式）
+## 图片模型 API 配置（Nano Banana 模式）
 
-如果你要使用 **Nano Banana / Gemini 图片生成模式**，需先配置 Gemini API。
+如果你要使用 **Nano Banana 图片生成模式**，可选择 Gemini 或 OpenAI。
 
 ### 配置方式
 
 在**项目根目录**创建或编辑 `.env` 文件，添加以下内容：
 
 ```bash
-# Gemini API
-# 官方: https://generativelanguage.googleapis.com/v1beta
-# 第三方代理示例: https://xingjiabiapi.org/v1
+# 方案 A：Gemini Nano Banana
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 GEMINI_API=你的API密钥
 GEMINI_MODEL=gemini-3.1-flash-image-preview
+
+# 方案 B：OpenAI gpt-image-2
+IMAGE_PROVIDER=openai
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=你的API密钥
+OPENAI_IMAGE_MODEL=gpt-image-2
 ```
 
 ### 环境变量说明
 
 | 变量 | 必需 | 说明 |
 |------|------|------|
-| `GEMINI_BASE_URL` | ✅ | Gemini API 地址（官方或代理） |
-| `GEMINI_API` | ✅ | API 密钥（也支持 `GEMINI_API_KEY` / `GOOGLE_API_KEY`） |
-| `GEMINI_MODEL` | ✅ | 模型名称（如 `gemini-3.1-flash-image-preview`） |
+| `IMAGE_PROVIDER` | 可选 | 显式指定 provider；`openai` 时走 OpenAI Image API |
+| `GEMINI_BASE_URL` | Gemini 时必需 | Gemini API 地址（官方或代理） |
+| `GEMINI_API` | Gemini 时必需 | API 密钥（也支持 `GEMINI_API_KEY` / `GOOGLE_API_KEY`） |
+| `GEMINI_MODEL` | Gemini 时必需 | 模型名称（如 `gemini-3.1-flash-image-preview`） |
+| `OPENAI_BASE_URL` | OpenAI 时可选 | OpenAI API 地址；默认 `https://api.openai.com/v1` |
+| `OPENAI_API_KEY` | OpenAI 时必需 | OpenAI API 密钥 |
+| `OPENAI_IMAGE_MODEL` | OpenAI 时可选 | 图片模型名称；默认 `gpt-image-2` |
 
 ### 验证连通性
 
@@ -103,13 +111,14 @@ python3 nsfc-schematic/scripts/nano_banana_check.py
 
 成功时会输出：
 ```
-OK: dotenv=/path/to/.env, base_url=https://..., model=gemini-3.1-flash-image-preview
+OK: dotenv=/path/to/.env, provider=openai|gemini, base_url=https://..., model=...
 ```
 
 ### 获取 API 密钥
 
-1. **官方渠道**：访问 [Google AI Studio](https://aistudio.google.com/apikey) 获取
-2. **第三方代理**：如使用代理服务，请按代理方文档配置 `GEMINI_BASE_URL`
+1. **Gemini 官方渠道**：访问 [Google AI Studio](https://aistudio.google.com/apikey) 获取
+2. **OpenAI 官方渠道**：访问 <https://platform.openai.com/api-keys> 获取
+3. **第三方代理**：如使用代理服务，请按代理方文档配置 `GEMINI_BASE_URL` 或 `OPENAI_BASE_URL`
 
 ---
 
@@ -125,7 +134,7 @@ OK: dotenv=/path/to/.env, base_url=https://..., model=gemini-3.1-flash-image-pre
 [Round N]
   1. 脚本从 spec 确定性构建纯文本 prompt
      （_build_nano_banana_prompt：硬编码拼接，不由宿主 AI 生成）
-  2. 调用 Gemini API（默认只传文本；当宿主 AI 写 `style_continuity: true` 时，会额外把上一轮 PNG 作为参考图一并传入以延续风格）→ 得到新 PNG
+  2. 调用图片模型 API（Gemini 或 OpenAI；默认只传文本；当宿主 AI 写 `style_continuity: true` 时，会额外把上一轮 PNG 作为参考图一并传入以延续风格）→ 得到新 PNG
   3. 脚本对 PNG 做启发式评估，生成证据包（evaluation.json 等）
   4. 宿主 AI 读证据包（含 PNG），写回 ai_critic_response.yaml
      → 默认修改 spec 或 config_local；也可选写 `nano_banana_color_advice` / `nano_banana_prompt` 来影响下一轮绘图；无论 `full/patch`，脚本都会自动补齐字体/文字排版硬约束，并强制禁止图内总标题
@@ -138,8 +147,8 @@ OK: dotenv=/path/to/.env, base_url=https://..., model=gemini-3.1-flash-image-pre
 
 | 误解 | 实际行为 |
 |------|----------|
-| "宿主 AI 直接写 prompt 传给 Gemini" | 默认 prompt 由脚本从 spec 确定性生成；但在 `ai_critic_response.yaml` 中可选提供 `nano_banana_prompt`（full/patch）覆盖下一轮 prompt，脚本仍会在最终发送前自动补齐字体/文字排版硬约束，并禁止图内总标题 |
-| "把上一轮 PNG 传回 Gemini 做图上修改" | 默认每轮只传纯文本、从头生成新 PNG；但当宿主 AI 写 `style_continuity: true` 时，下一轮会把上一轮 PNG 作为参考图传入，用于**延续风格**（不是像素级局部编辑） |
+| "宿主 AI 直接写 prompt 传给模型" | 默认 prompt 由脚本从 spec 确定性生成；但在 `ai_critic_response.yaml` 中可选提供 `nano_banana_prompt`（full/patch）覆盖下一轮 prompt，脚本仍会在最终发送前自动补齐字体/文字排版硬约束，并禁止图内总标题 |
+| "把上一轮 PNG 传回模型做图上修改" | 默认每轮只传纯文本、从头生成新 PNG；但当宿主 AI 写 `style_continuity: true` 时，下一轮会把上一轮 PNG 作为参考图传入，用于**延续风格**（不是像素级局部编辑） |
 
 ### 优化思路
 
@@ -188,7 +197,7 @@ python3 nsfc-schematic/scripts/generate_schematic.py \
   --rounds 5
 ```
 
-### 步骤 3：Nano Banana PNG-only（仅当你明确要求）
+### 步骤 3：Nano Banana PNG-only（Gemini / OpenAI `gpt-image-2`；仅当你明确要求）
 
 ```bash
 # 连通性检查（读取 .env）

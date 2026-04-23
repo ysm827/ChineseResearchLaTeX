@@ -459,8 +459,8 @@ git clone https://github.com/huangwb8/skills.git &&
 - **nsfc-justification-writer**：理论创新导向的立项依据写作（适用于各类科研基金申请书），构建"价值与必要性 → 现状与不足 → 科学问题/科学假设 → 切入点"四段闭环叙事，识别并改写"绝对化/填补空白"等高风险表述，防止用方法学术语稀释科学问题主线
 - **nsfc-research-content-writer**：研究内容编排，同步生成"研究内容 + 特色与创新 + 三年年度计划"，确保子目标带"指标/对照/验证方案"三件套，创新点用"相对坐标系"表达
 - **nsfc-research-foundation-writer**：研究基础编排，同步生成"研究基础 + 工作条件 + 风险应对措施"，用"证据链 + 条件对位 + 风险预案"证明项目可行性
-- **nsfc-roadmap**：从 NSFC 标书自动生成可打印、A4 可读的技术路线图，输出 `.drawio` 可编辑源文件与 `.svg`/`.png`/`.pdf` 渲染结果，默认纯 AI 规划 + 多轮评估-优化（模板仅作可选参考）
-- **nsfc-schematic**：将标书中的研究机制、算法架构、模块关系转成原理图/机制图，输出 `.drawio` 源文件与 `.svg`/`.png` 渲染结果，支持分组结构、正交路由与多轮自检优化
+- **nsfc-roadmap**：从 NSFC 标书自动生成可打印、A4 可读的技术路线图，输出 `.drawio` 可编辑源文件与 `.svg`/`.png`/`.pdf` 渲染结果，默认纯 AI 规划 + 多轮评估-优化；Nano Banana PNG-only 模式兼容 Gemini 与 OpenAI `gpt-image-2`
+- **nsfc-schematic**：将标书中的研究机制、算法架构、模块关系转成原理图/机制图，输出 `.drawio` 源文件与 `.svg`/`.png` 渲染结果，支持分组结构、正交路由与多轮自检优化；Nano Banana PNG-only 模式兼容 Gemini 与 OpenAI `gpt-image-2`
 - **nsfc-abstract**：标题建议 + 中英文摘要生成（默认 1 个推荐标题 + 5 个候选标题及理由；中文≤400字含标点；英文≤4000字符含标点；英文为中文的忠实翻译，不新增信息；输出写入工作目录 `NSFC-ABSTRACTS.md`）
 - **nsfc-code**：申请代码推荐（只读读取标书正文 + 2026 申请代码推荐库，输出 5 组主/次代码与理由，写入 `NSFC-CODE-vYYYYMMDDHHmm.md`）。写完标书时再用。 
 - **nsfc-budget**：根据标书正文与补充材料生成预算说明书 LaTeX 项目与 `budget.pdf`，默认将所有中间过程隔离在工作目录 `.nsfc-budget/` 下
@@ -496,8 +496,8 @@ git clone https://github.com/huangwb8/skills.git &&
 | [nsfc-justification-writer](skills/nsfc-justification-writer/) | v1.0.0 | 📝 日常 | 理论创新导向的立项依据写作 | ✅ 稳定 |
 | [nsfc-research-content-writer](skills/nsfc-research-content-writer/) | v1.0.0 | 📝 日常 | NSFC 研究内容编排写作 | ✅ 稳定 |
 | [nsfc-research-foundation-writer](skills/nsfc-research-foundation-writer/) | v0.1.1 | 📝 日常 | NSFC 研究基础编排写作 | 🚧 开发中 |
-| [nsfc-roadmap](skills/nsfc-roadmap/) | v1.0.7 | 📝 日常 | NSFC 技术路线图生成（.drawio → .svg/.png/.pdf） | ✅ 稳定 |
-| [nsfc-schematic](skills/nsfc-schematic/) | v1.0.7 | 📝 日常 | NSFC 原理图/机制图生成（.drawio → .svg/.png/.pdf） | ✅ 稳定 |
+| [nsfc-roadmap](skills/nsfc-roadmap/) | v1.0.8 | 📝 日常 | NSFC 技术路线图生成（.drawio → .svg/.png/.pdf；Nano Banana 兼容 Gemini/OpenAI） | ✅ 稳定 |
+| [nsfc-schematic](skills/nsfc-schematic/) | v1.0.8 | 📝 日常 | NSFC 原理图/机制图生成（.drawio → .svg/.png/.pdf；Nano Banana 兼容 Gemini/OpenAI） | ✅ 稳定 |
 | [nsfc-qc](skills/nsfc-qc/) | v1.2.0 | 📝 日常 | NSFC 标书只读质量控制（多线程检查文风/引用/篇幅/逻辑 + 全文级缩写注册表 QC） | ✅ 稳定 |
 | [nsfc-ref-alignment](skills/nsfc-ref-alignment/) | v0.1.1 | 📝 日常 | NSFC 参考文献与正文引用一致性核查（只读） | 🚧 开发中 |
 | [nsfc-reviewers](skills/nsfc-reviewers/) | v1.4.0 | 📝 日常 | NSFC 标书多专家多维度评审模拟（默认 3 组、最多 5 组，含函评/会评给不过判断与资助约束识别） | ✅ 稳定 |
