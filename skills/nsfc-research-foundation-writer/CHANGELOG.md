@@ -1,5 +1,14 @@
 # 变更记录
 
+## [0.1.2] - 2026-04-24
+
+### Fixed
+- 修复 `SKILL.md` frontmatter 中混入 Markdown 正文导致技能加载器 YAML 解析失败的问题。
+
+### Changed
+- 将 `bensz-collect-bugs` 协作约定移出 YAML frontmatter，保留为正文执行规则。
+- 增强 `scripts/validate_skill.py`，在 PyYAML 可用时对 `SKILL.md` frontmatter 执行严格 YAML 解析。
+
 ## [0.1.1] - 2026-02-16
 
 ### Added

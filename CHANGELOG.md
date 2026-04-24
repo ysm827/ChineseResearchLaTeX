@@ -18,6 +18,8 @@
 
 ### Fixed（修复）
 
+- 修复 `skills/nsfc-research-foundation-writer/SKILL.md` frontmatter 混入 Markdown 正文导致 Codex 技能加载器 YAML 解析失败的问题，并增强该 skill 自检脚本的 frontmatter YAML 解析校验
+
 - 调整 `paper-sci-01` 的 PDF 参考文献可读性：在 [main.tex](/Volumes/2T01/Github/ChineseResearchLaTeX/projects/paper-sci-01/main.tex) 中为 bibliography 增加项目级 `\AtBeginBibliography{\fontsize{11.5pt}{16.5pt}\selectfont}` 覆盖，使 PDF 端参考文献条目在当前 Vancouver/JITC 风格下不再显得过小，同时不影响 DOCX 端和其它模板
 - 修复 `bensz-paper` 在完整仓库开发模式下仍可能从已安装 texmf 包读取旧 profile 的问题：现在 [bml-core.sty](/Volumes/2T01/Github/ChineseResearchLaTeX/packages/bensz-paper/bml-core.sty) 会基于当前包文件所在目录显式加载 `profiles/`，不再被用户系统里旧版 `bensz-paper` 的 profile 覆盖；同时将 `paper-sci-01` 的参考文献字号统一收敛到项目 profile 的 `10.5pt / 15pt`，并让 DOCX 的 Vancouver bibliography 直接跟随同一 profile 参数，而不再额外硬编码 `12pt / 18pt`，从而消除“PDF 偏小、DOCX 偏大”的分叉
 - 修复 `paper-sci-01` 参考文献链接样式不完整的问题：在 [main.tex](/Volumes/2T01/Github/ChineseResearchLaTeX/projects/paper-sci-01/main.tex) 中为 `paper-sci-01` 显式启用 `colorlinks=true`、`citecolor=blue`、`urlcolor=blue` 与 `linkcolor=blue`，使 PDF 正文上标引用和参考文献 DOI 统一显示为蓝色超链接；同时在 [fix_docx_spacing.py](/Volumes/2T01/Github/ChineseResearchLaTeX/packages/bensz-paper/scripts/fix_docx_spacing.py) 中为 Vancouver 链路新增 bibliography 书签与正文上标内部跳转重写逻辑，让 DOCX 中的 `[1]`、`[2,3]` 这类上标引用也成为蓝色可点击链接，并继续保持 DOI 外链与其它模板的兼容性

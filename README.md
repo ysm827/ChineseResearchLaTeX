@@ -495,7 +495,7 @@ git clone https://github.com/huangwb8/skills.git &&
 | [nsfc-budget](skills/nsfc-budget/) | v0.1.2 | 📝 日常 | NSFC 预算说明书生成（LaTeX 项目 + `budget.pdf`） | 🚧 开发中 |
 | [nsfc-justification-writer](skills/nsfc-justification-writer/) | v1.0.0 | 📝 日常 | 理论创新导向的立项依据写作 | ✅ 稳定 |
 | [nsfc-research-content-writer](skills/nsfc-research-content-writer/) | v1.0.0 | 📝 日常 | NSFC 研究内容编排写作 | ✅ 稳定 |
-| [nsfc-research-foundation-writer](skills/nsfc-research-foundation-writer/) | v0.1.1 | 📝 日常 | NSFC 研究基础编排写作 | 🚧 开发中 |
+| [nsfc-research-foundation-writer](skills/nsfc-research-foundation-writer/) | v0.1.2 | 📝 日常 | NSFC 研究基础编排写作 | 🚧 开发中 |
 | [nsfc-roadmap](skills/nsfc-roadmap/) | v1.0.8 | 📝 日常 | NSFC 技术路线图生成（.drawio → .svg/.png/.pdf；Nano Banana 兼容 Gemini/OpenAI） | ✅ 稳定 |
 | [nsfc-schematic](skills/nsfc-schematic/) | v1.0.8 | 📝 日常 | NSFC 原理图/机制图生成（.drawio → .svg/.png/.pdf；Nano Banana 兼容 Gemini/OpenAI） | ✅ 稳定 |
 | [nsfc-qc](skills/nsfc-qc/) | v1.2.0 | 📝 日常 | NSFC 标书只读质量控制（多线程检查文风/引用/篇幅/逻辑 + 全文级缩写注册表 QC） | ✅ 稳定 |

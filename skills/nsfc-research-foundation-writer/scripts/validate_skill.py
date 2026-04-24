@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 from _yaml_utils import extract_yaml_list_under_block, extract_yaml_value_under_block
 
@@ -24,6 +25,23 @@ def _extract_frontmatter(text: str) -> str:
     if len(parts) != 2:
         return ""
     return parts[0]
+
+
+def _parse_frontmatter_yaml(frontmatter: str) -> dict[str, Any] | None:
+    try:
+        import yaml  # type: ignore[import-untyped]
+    except ImportError:
+        _warn("PyYAML is not installed; skipping strict frontmatter YAML parsing")
+        return None
+
+    try:
+        parsed = yaml.safe_load(frontmatter) or {}
+    except yaml.YAMLError as exc:
+        raise ValueError(f"SKILL.md frontmatter is invalid YAML: {exc}") from exc
+
+    if not isinstance(parsed, dict):
+        raise ValueError("SKILL.md frontmatter must parse to a YAML mapping")
+    return parsed
 
 
 def _extract_frontmatter_field(frontmatter: str, key: str) -> str | None:
@@ -57,6 +75,10 @@ def main() -> int:
     frontmatter = _extract_frontmatter(skill_text)
     if not frontmatter:
         return _err("SKILL.md missing YAML frontmatter block")
+    try:
+        _parse_frontmatter_yaml(frontmatter)
+    except ValueError as exc:
+        return _err(str(exc))
 
     fm_name = _extract_frontmatter_field(frontmatter, "name")
     fm_version = _extract_frontmatter_field(frontmatter, "version")
@@ -113,4 +135,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
