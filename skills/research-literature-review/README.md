@@ -2,6 +2,8 @@
 
 本 README 面向**使用者**：如何触发并正确使用 `research-literature-review` skill。执行指令与硬性规范在 `SKILL.md`；默认参数在 `config.yaml`。
 
+当前版本：`v1.3.0`。
+
 ## 旧名兼容
 
 - 当前正式名：`research-literature-review`
@@ -11,19 +13,69 @@
 
 ## 快速开始
 
+```text
+请使用 research-literature-review skill 写一篇“HER2-ADC 在乳腺癌中的研究进展”的 Premium 级综述。
+输入：主题与时间范围（近 2023–2025 年为主，更早但特别重要的研究也可纳入）
+输出：PDF、Word，以及可复核的检索与引用支持材料
+另外，还有下列参数约束：
+- 结构要求：增加“未来 3 年研究方向”小节
+- 输出目录：`./review-deliverables/`
 ```
-请用 research-literature-review 这个skill写一篇"xxx主题"的Premium级综述。参考文献以近2023-2025年为主，更早之前的文献，如果特别相关、特别重要的，也可以纳入。要有一个小节专门讨论未来3年较有前景的研究方向，并将 PDF/Word 发布到 `./review-deliverables/`。
-```
+
+技能会先生成并保存 5–25 条查询，再启动检索。你不需要猜 `queries_{stem}.json` 之类的内部文件名。
 
 > 💡 **示例**：查看 [examples/](examples/) 目录，包含本 skill 实际生成的专家级综述示例，可参考输出格式和质量标准。
 
 ## 设计理念
-- AI 自定检索词 → 去重 → 标题/摘要 1–10 分相关性与子主题自动分组 → 高分优先选文 → **自动生成"综/述"字数预算（70% 引用段 + 30% 无引用段，3 次采样均值，空 ID 行支持无引用大纲）** → 资深领域专家自由写作。
+- AI 先生成并显式保存查询 JSON → 多源检索 → 去重 → 标题/摘要 1–10 分相关性与子主题自动分组 → 高分优先选文 → **自动生成"综/述"字数预算（70% 引用段 + 30% 无引用段，3 次采样均值，空 ID 行支持无引用大纲）** → 资深领域专家自由写作。
 - 档位仅影响默认字数/参考范围（可覆盖），支持三档：**Premium（旗舰级）**、**Standard（标准级）**、**Basic（基础级）**。
 - 强制导出 PDF/Word；硬校验：必需章节、字数 min/max、参考文献数 min/max、\cite 与 bib 对齐；可选校验字数预算覆盖率/总和。
 - **最高原则**：AI 不得偷懒或短视地为了速度做错误事；不确定必须说明；最终润色仅做衔接与结构调整，不得改动文献题目/摘要所含事实/数字。
-- **稳健性**：`--resume-from` 始终先加载已有 checkpoint，损坏 state 会停止而不是覆盖；恢复状态时校验 `papers` 路径；Bib 自动转义 `&`、补充缺失字段并大小写无关去重 key；模板/`.bst` 缺失会自动回退同步。
+- **稳健性**：查询缺失、冲突、格式错误或数量越界时默认停止；`--resume-from` 始终先加载 checkpoint，并校验查询文件是否仍存在、SHA-256 指纹是否变化；Bib 自动转义 `&`、补充缺失字段并大小写无关去重 key。
 - **多语言支持**（v4.0 新增）：支持将综述翻译为多种语言（en/zh/ja/de/fr/es），自动修复 LaTeX 渲染错误，保留引用和结构不变。详见[多语言支持](#多语言支持)。
+
+## 多查询输入契约
+
+### 支持的 JSON
+
+推荐使用带理由的对象格式：
+
+```json
+{
+  "queries": [
+    {
+      "query": "HER2 antibody drug conjugate breast cancer clinical trial",
+      "rationale": "核心临床证据"
+    }
+  ]
+}
+```
+
+也支持对象数组和字符串数组。空查询会被剔除；有效查询默认至少 5 条、至多 25 条。
+
+### 输入来源优先级
+
+| 优先级 | 来源 | 适用场景 |
+|---|---|---|
+| 1 | `--query-file` / `--queries` | 推荐；路径明确，runner 会复制到当前 run 的 `input/queries.json` |
+| 2 | `<work-dir>/input/queries.json` | 两步式准备后填写 |
+| 3 | `input/queries_{stem}.json` | 当前 run 的兼容文件 |
+| 4 | `output/artifacts/queries_{stem}.json` | 当前 run 的旧版产物 |
+| 5 | 唯一历史 stem 文件 | 只读兼容，不再生成这种名称 |
+
+自动发现多个文件会停止并列出冲突。发现文件但 JSON 无效或数量越界也会停止，不会改跑单查询。
+
+### 搜索模式如何审计
+
+`pipeline_state.json` 和 `search_log_*.json` 会明确记录：
+
+- `search_mode`：`multi_query` 或 `single_query`
+- `query_source`
+- `requested_query_count` / `accepted_query_count`
+- `query_file_sha256`（state）
+- `fallback_reason`
+
+因此，“单查询返回很多结果”不会再被误认为多查询成功。
 
 ## 字数预算的设计哲学
 
@@ -166,21 +218,63 @@ cache:
 请读取 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/research-literature-review/{run-id}/output/artifacts/word_budget_final.csv`，引用段按每篇文献的“综/述”字数预算写，无引用段（文献ID为空，如摘要/结论/展望）按该行预算控制长度；可合并引用但需贴近预算总字数。
 ```
 
-## 运行与校验（维护者）
-- 自动流程：`python scripts/run_pipeline.py --topic "主题" --publish-dir ./review-deliverables`
-  阶段：`0_setup → 0.5_subtopics（写作前由 AI 给出并记录） → 1_search → 2_dedupe → 3_score → 4_select → 4.5_word_budget → 5_write → 6_validate（含有机扩写与可选预算校验） → 7_export`
+## 常见问题
+
+### Q：没有查询文件，可以直接运行吗？
+
+A：可以先用 `--prepare-only` 创建 `<work-dir>/input/queries.json`，填好后再从阶段 1 恢复。普通运行缺少有效查询时会停止。
+
+### Q：外部编排器暂时只能提供主题，怎么办？
+
+A：临时显式添加 `--allow-single-query-fallback`，并用 `--fallback-reason` 写明原因。Search Log 会带警告；这不是多查询模式。
+
+### Q：resume 时查询文件被改过会怎样？
+
+A：runner 会比较 state 中的 SHA-256；文件缺失或指纹变化时停止，不会静默发现另一个文件继续跑。
+
+## 备选用法（脚本/硬编码流程）
+
+### 已准备查询文件：直接运行
+
+```bash
+# 显式查询文件优先，并复制到当前 run 的 input/queries.json
+python scripts/run_pipeline.py --topic "主题" --query-file ./queries.json --publish-dir ./review-deliverables
+```
+
+### 两步式：先准备，再恢复
+
+```bash
+# 步骤 1：只建立工作区与查询模板
+python scripts/pipeline_runner.py --topic "主题" --work-dir ./review-run --prepare-only
+
+# 步骤 2：填充 ./review-run/input/queries.json 后，从检索阶段继续
+python scripts/pipeline_runner.py --resume ./review-run --resume-from 1 --publish-dir ./review-deliverables
+```
+
+### 显式单查询后备
+
+```bash
+# 仅用于外部编排器临时兼容；原因会进入 state 与 Search Log
+python scripts/run_pipeline.py --topic "主题" --allow-single-query-fallback --fallback-reason "暂未提供多查询文件"
+```
+
+### 校验流程
+
+- 阶段：`0_setup → 0.5_subtopics（写作前由 AI 给出并记录） → 1_search → 2_dedupe → 3_score → 4_select → 4.5_word_budget → 5_write → 6_validate（含有机扩写与可选预算校验） → 7_export`
 - 校验：`validate_counts.py`（字数/引用 min/max）、`validate_review_tex.py`（必需章节 + cite/bib 对齐）
 - 导出：`compile_latex_with_bibtex.py {topic}_review.tex {topic}_review.pdf`；`convert_latex_to_word.py ...`；如需自定义模板可在 `config.yaml.latex.template_path_override` 或 CLI `--template` 指定路径（缺失会回退到内置模板并同步 `.bst`）。
 
 ### 文件隔离
 
 - `output/artifacts/` 保存候选库、评分、选文、字数预算、证据卡和校验 JSON；`output/reference/` 保存数据抽取表；`output/deliverables/` 保存内部生成的 PDF/Word，`output/deliverables/supporting/` 保存可选支持性文件。
+- `input/queries.json` 保存当前 run 的规范化查询输入；不要从其他 run 猜测或复用未声明路径。
 - 正式目录由 `--publish-dir` 接收白名单文件，默认只复制 PDF/Word；需要源码和审计材料时显式加 `--include-supporting`。
 - 历史 `.systematic-literature-review/` 目录只能通过显式 resume/整理/迁移处理，不再作为新运行的默认路径。
 
 ## 关键文件
 - `SKILL.md`：工作流、输入输出、最高原则与硬校验
-- `config.yaml`：档位字数/参考范围、高分优先比例、搜索默认参数
+- `config.yaml`：查询数量/后备策略、档位字数/参考范围和搜索默认参数
+- `scripts/query_contract.py`：查询 schema、共享 stem 和 SHA-256 指纹
 - `scripts/score_relevance.py`：子主题自动分组 + 1–10 分
 - `scripts/select_references.py`：按高分优先比例和目标数量选文，生成 Bib
 - `scripts/plan_word_budget.py`：三次采样生成字数预算 run1/2/3 + final（含无引用空 ID 行）
@@ -192,7 +286,7 @@ cache:
 - 只有字数/参考数与引用一致性是硬门槛；其余结构/密度不再强制。
 - 输出文件仍采用 LaTeX-first：`{topic}_review.tex/.bib → .pdf/.docx`。
 - 字数不足时优先在最短/缺证据的子主题段内做“有机扩写”，不新增子主题，不改原主张与引用；最终整体润色仅做衔接与结构优化，不得篡改文献事实/数字/元数据。
-- resume 时若 `papers` 路径无效会自动清理并重新检索；中文主题缺少英文 token 会降级为字母/原始主题匹配并提示。
+- resume 时查询文件缺失或 SHA-256 指纹变化会停止确认；不会静默换成另一查询来源。中文主题缺少英文 token 时仍会按既有搜索策略提示。
 
 ## WHICHMODEL - 模型选择最佳实践
 

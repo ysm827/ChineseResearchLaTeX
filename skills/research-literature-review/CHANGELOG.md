@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed（多查询输入契约与可审计后备 - 2026-09-01）
+
+- 版本提升至 `v1.3.0`；新增 `query_input` 配置，统一查询目录、5–25 条数量边界和默认关闭的单查询后备。
+- `run_pipeline.py` 与 `pipeline_runner.py` 新增 `--query-file`/`--queries`、`--prepare-only`、`--allow-single-query-fallback` 和 `--fallback-reason`；多查询缺失或无效时默认 fail-closed。
+- 新增共享 stem/schema/指纹模块，统一空白、斜杠、中文与 `--output-stem` 命名，旧文件名仅作当前 run 内的唯一兼容探测。
+- `pipeline_state.json` 与 Search Log 记录搜索模式、查询来源、请求/接受数量、SHA-256 指纹和后备原因；resume 遇到查询文件缺失或变化时停止。
+- 新增不联网回归测试，覆盖显式输入、自动发现、非法/空/数量越界、多候选冲突、显式单查询、resume 指纹和 3-query mock 日志。
+
 ### Changed（运行区与正式发布目录隔离 - 2026-08-24）
 
 - 新增统一布局解析与 `output/deliverables/` 内部交付区，避免把中间文件写入运行目录根部。

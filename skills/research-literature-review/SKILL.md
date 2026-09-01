@@ -1,6 +1,6 @@
 ---
 name: research-literature-review
-description: 当用户明确要求"做系统综述/文献综述/related work/相关工作/文献调研"，或要求使用旧名 systematic-literature-review skill 时使用。AI 自定检索词，多源检索→去重→AI 逐篇阅读并评分（1–10分语义相关性与子主题分组）→按高分优先比例选文→自动生成"综/述"字数预算→资深领域专家自由写作（固定摘要/引言/子主题/讨论/展望/结论），保留正文字数与参考文献数硬校验，强制导出 PDF 与 Word。支持多语言翻译与智能编译（en/zh/ja/de/fr/es）。
+description: 当用户明确要求"做系统综述/文献综述/related work/相关工作/文献调研"，或要求使用旧名 systematic-literature-review skill 时使用。AI 先生成并显式保存 5–25 条检索查询，再执行多源检索、去重、逐篇语义评分、选文、字数预算和专家写作，强制校验引用并导出 PDF 与 Word；查询缺失或无效时默认停止，不静默降级为单查询。支持 en/zh/ja/de/fr/es。
 
 metadata:
   author: Bensz Conan
@@ -63,6 +63,7 @@ metadata:
 3. 档位：`Premium` / `Standard` / `Basic`；未指定时读取 `config.yaml` 默认值。
 4. 目标字数与参考文献范围：未指定时按 `config.yaml.scoring.default_*_range`。
 5. 输出目录或安全化前缀：未指定时使用安全化主题名。
+6. 查询输入：阶段 1 前必须提供符合公开 schema 的多查询 JSON；推荐用 `--query-file`，也可填写当前 run 的 `input/queries.json`。
 
 ## 输出
 
@@ -90,12 +91,20 @@ metadata:
 - 正文禁止泄露 AI 工作流，例如“检索/去重/评分/选文/字数预算”等元叙事只能写入 `{主题}_工作条件.md`。
 - 摘要必须为单段，避免方法学流水账；表格宽度与样式约束见 `references/review-tex-section-templates.md`。
 - 不为凑引用而堆砌低分文献；无法确认时优先不改、不引。
+- 多查询 JSON 缺失、冲突、不可解析、有效查询少于配置下限或超过上限时，阶段 1 必须 fail-closed；不得以成功退出码伪装成多查询完成。
+- 只有调用方显式传入 `--allow-single-query-fallback` 时才允许执行一次单查询，并在 state 与 Search Log 中记录模式、来源、原因和警告。
 
 ## 主流程
 
 ### 0. 准备
 
 - 记录主题、档位、字数/参考范围与输出目录。
+- 先读取 `references/ai_query_generation_prompt.md`，生成查询 JSON。公开 schema 支持以下三种形态：
+  - `{"queries": [{"query": "...", "rationale": "..."}]}`
+  - `[{"query": "...", "rationale": "..."}]`
+  - `["query 1", "query 2"]`
+- 剔除空查询后，有效数量必须满足 `config.yaml:query_input.min_queries/max_queries`（默认 5–25）。
+- 已知工作目录时，直接将文件保存到 `<work-dir>/input/queries.json`，或用 `--query-file <path>` 让 runner 将显式输入复制到该位置。工作目录尚未建立时，先运行 `--prepare-only`，填充打印出的 `input/queries.json`，再以 `--resume ... --resume-from 1` 继续。
 - 开始前优先阅读：
   - `references/ai_query_generation_prompt.md`
   - `references/ai_scoring_prompt.md`
@@ -105,9 +114,11 @@ metadata:
 
 ### 1. 多查询检索
 
-- AI 为主题自主规划查询变体，通常 5-15 组。
+- 查询来源优先级固定为：显式 `--query-file` → 当前 run 的 `input/queries.json` → `input/queries_{stem}.json` → `output/artifacts/queries_{stem}.json` → 当前 run 内唯一历史兼容文件。
+- 自动发现多个候选时停止并报告冲突；发现文件但 schema/数量无效时停止并给出修复提示。不得跨 run 猜测查询路径。
 - 优先用 OpenAlex，必要时按 `config.yaml.search.provider_priority` 自动降级。
-- 检索结果写 Search Log；resume 时若 `papers` 路径失效，应清理后重检。
+- 检索结果写 Search Log；多查询必须标记 `search_mode=multi_query`。state 同时记录查询来源、请求/接受数量和 SHA-256 指纹；resume 时文件缺失或指纹变化必须停止确认。
+- 单查询只作为显式后备：传 `--allow-single-query-fallback`，可用 `--fallback-reason` 写明原因；日志必须标记 `search_mode=single_query` 和醒目警告。
 
 ### 2. 去重
 
@@ -165,7 +176,7 @@ metadata:
 
 ## 工作目录与文件隔离
 
-- 默认 `run_pipeline.py` 将运行目录放在 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/research-literature-review/<run-id>/`；内部状态和产物位于其 `output/` 下的 `artifacts/`、`reference/`、`cache/`、`scripts/`、`deliverables/`（支持性文件单独位于 `deliverables/supporting/`）。
+- 默认 `run_pipeline.py` 将运行目录放在 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/research-literature-review/<run-id>/`；查询输入位于 `input/`，内部状态和产物位于 `output/` 下的 `artifacts/`、`reference/`、`cache/`、`scripts/`、`deliverables/`（支持性文件单独位于 `deliverables/supporting/`）。
 - 正式交付目录必须通过 `--publish-dir` 显式指定，并且只接收 PDF/Word（或显式开启的支持性文件）。不要把正式目录作为 `--work-dir`。
 - AI 临时脚本必须放到内部 `output/scripts/`；不要把临时文件写到运行目录根部，不要使用绝对路径写 `/tmp/*`，也不要读写其他 run 目录。
 - 以环境变量 `SYSTEMATIC_LITERATURE_REVIEW_SCOPE_ROOT` 和 `SYSTEMATIC_LITERATURE_REVIEW_SCRIPTS_DIR` 为准。
@@ -173,11 +184,18 @@ metadata:
 ## 关键命令
 
 ```bash
-# 推荐主入口
-python3 scripts/run_pipeline.py --topic "{主题}" --publish-dir ./review-deliverables
+# 查询文件已准备好：推荐主入口
+python3 scripts/run_pipeline.py --topic "{主题}" --query-file ./queries.json --publish-dir ./review-deliverables
+
+# 两步式：先生成模板，再填充 input/queries.json 并恢复阶段 1
+python3 scripts/pipeline_runner.py --topic "{主题}" --work-dir <work-dir> --prepare-only
+python3 scripts/pipeline_runner.py --resume <work-dir> --resume-from 1 --publish-dir ./review-deliverables
+
+# 临时兼容外部编排器：显式、可审计的单查询后备
+python3 scripts/run_pipeline.py --topic "{主题}" --allow-single-query-fallback --fallback-reason "外部编排器暂未提供查询文件"
 
 # 旧入口 / resume
-python3 scripts/pipeline_runner.py --topic "{主题}" --domain general --publish-dir ./review-deliverables
+python3 scripts/pipeline_runner.py --topic "{主题}" --domain general --query-file ./queries.json --publish-dir ./review-deliverables
 python3 scripts/pipeline_runner.py --resume .bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/research-literature-review/{run-id} --publish-dir ./review-deliverables
 
 # 阶段 3 评分后，从第 4 阶段继续

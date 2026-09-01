@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from path_scope import get_effective_scope_root, resolve_and_check
+from query_contract import QueryInputError, QueryPlan, load_query_plan, normalize_query_payload
 
 
 # 导入 openalex_search.py 中的检索函数
@@ -112,53 +113,46 @@ class QualitySummary:
     recommendations: List[str] = field(default_factory=list)
 
 
-def _load_queries(queries_path: Optional[Path], query_list: Optional[str]) -> List[Dict[str, str]]:
-    """
-    加载查询列表（强校验，不允许静默回退到硬编码查询）。
-
-    支持的格式：
-    - {"queries": [{"query": "...", "rationale": "..."}, ...]}
-    - [{"query": "...", "rationale": "..."}, ...]
-    - ["raw query 1", "raw query 2", ...]（会被规范化为 dict）
-    """
-
-    def _normalize_item(item: Any) -> Optional[Dict[str, str]]:
-        if isinstance(item, str):
-            q = item.strip()
-            return {"query": q, "rationale": ""} if q else None
-        if isinstance(item, dict):
-            q = str(item.get("query") or "").strip()
-            if not q:
-                return None
-            r = str(item.get("rationale") or "").strip()
-            return {"query": q, "rationale": r}
-        return None
-
-    data: Any = None
-    if queries_path and queries_path.exists():
-        try:
-            data = json.loads(queries_path.read_text(encoding="utf-8"))
-        except Exception:
-            data = None
-    elif query_list:
+def _load_query_plan(
+    queries_path: Optional[Path],
+    query_list: Optional[str],
+    *,
+    min_queries: int,
+    max_queries: int,
+) -> QueryPlan:
+    if queries_path is not None and query_list:
+        raise QueryInputError("--queries 与 --query-list 不能同时使用")
+    if queries_path is not None:
+        return load_query_plan(
+            queries_path,
+            min_queries=min_queries,
+            max_queries=max_queries,
+        )
+    if query_list:
         try:
             data = json.loads(query_list)
-        except Exception:
-            data = None
+        except json.JSONDecodeError as exc:
+            raise QueryInputError(f"无法解析 --query-list JSON：{exc}") from exc
+        return normalize_query_payload(
+            data,
+            min_queries=min_queries,
+            max_queries=max_queries,
+            source="--query-list",
+        )
+    raise QueryInputError("未提供 --queries/--query-file 或 --query-list")
 
-    if data is None:
+
+def _load_queries(queries_path: Optional[Path], query_list: Optional[str]) -> List[Dict[str, str]]:
+    """兼容旧调用方；新入口应使用带数量边界的 _load_query_plan。"""
+    try:
+        return _load_query_plan(
+            queries_path,
+            query_list,
+            min_queries=1,
+            max_queries=25,
+        ).queries
+    except QueryInputError:
         return []
-
-    items: Any = data.get("queries", []) if isinstance(data, dict) else data
-    if not isinstance(items, list):
-        return []
-
-    out: list[dict] = []
-    for it in items:
-        norm = _normalize_item(it)
-        if norm:
-            out.append(norm)
-    return out
 
 
 def _dedupe_papers(papers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -755,6 +749,13 @@ def main() -> int:
         "--query-list",
         help="直接传入查询列表（JSON 字符串）",
     )
+    parser.add_argument("--min-queries", type=int, default=5, help="有效查询最小数量（默认: 5）")
+    parser.add_argument("--max-queries", type=int, default=25, help="有效查询最大数量（默认: 25）")
+    parser.add_argument(
+        "--query-source",
+        default="direct_cli",
+        help="查询来源审计标签（写入 Search Log）",
+    )
     parser.add_argument(
         "--output",
         required=True,
@@ -820,10 +821,17 @@ def main() -> int:
             args.cache_dir = resolve_and_check(args.cache_dir, scope_root, must_exist=False)
 
     # 加载查询
-    queries = _load_queries(args.queries, args.query_list)
-    if not queries:
-        print("✗ 错误：未提供有效查询", file=sys.stderr)
+    try:
+        query_plan = _load_query_plan(
+            args.queries,
+            args.query_list,
+            min_queries=args.min_queries,
+            max_queries=args.max_queries,
+        )
+    except QueryInputError as exc:
+        print(f"✗ 查询输入错误：{exc}", file=sys.stderr)
         return 1
+    queries = query_plan.queries
 
     print(f"加载了 {len(queries)} 个查询")
 
@@ -853,6 +861,11 @@ def main() -> int:
     quality_summary = _generate_quality_summary(logs)
 
     log_data = {
+        "search_mode": "multi_query",
+        "query_source": args.query_source,
+        "requested_query_count": query_plan.requested_count,
+        "accepted_query_count": query_plan.accepted_count,
+        "fallback_reason": "",
         "total_queries": len(queries),
         "total_returned": sum(log.returned for log in logs),
         "total_unique": len(papers),

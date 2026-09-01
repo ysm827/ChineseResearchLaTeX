@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, asdict, field
@@ -26,11 +27,27 @@ import yaml
 
 try:
     from layout_paths import LayoutPaths
+    from path_scope import resolve_and_check
     from publish_deliverables import PublishError, publish_deliverables
+    from query_contract import (
+        QueryInputError,
+        legacy_output_stems,
+        load_query_plan,
+        normalize_output_stem,
+        sha256_file,
+    )
 except ModuleNotFoundError:  # 允许被 qa 动态加载
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from layout_paths import LayoutPaths
+    from path_scope import resolve_and_check
     from publish_deliverables import PublishError, publish_deliverables
+    from query_contract import (
+        QueryInputError,
+        legacy_output_stems,
+        load_query_plan,
+        normalize_output_stem,
+        sha256_file,
+    )
 
 
 def _safe_topic_slug(topic: str) -> str:
@@ -53,6 +70,27 @@ def _default_bensz_work_dir(topic: str) -> Path:
     raise ValueError(f"无法在 {root} 下分配唯一工作目录: {base}")
 
 
+def _load_resume_identity(work_dir: Path) -> tuple[Optional[str], Optional[str]]:
+    """在构造 runner 前恢复主题/stem，避免 resume 使用目录名改写输出身份。"""
+    root = Path(work_dir).expanduser().resolve()
+    candidates = [
+        root / "output" / "pipeline_state.json",
+        root / ".systematic-literature-review" / "pipeline_state.json",
+    ]
+    for state_file in candidates:
+        if not state_file.exists():
+            continue
+        try:
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            return None, None
+        topic = str(data.get("topic") or "").strip() or None
+        metrics = data.get("metrics", {}) if isinstance(data.get("metrics", {}), dict) else {}
+        stem = str(data.get("file_stem") or metrics.get("file_stem") or "").strip() or None
+        return topic, stem
+    return None, None
+
+
 # ============================================================================
 # 数据模型
 # ============================================================================
@@ -61,6 +99,7 @@ def _default_bensz_work_dir(topic: str) -> Path:
 class PipelineState:
     version: str = "2.0"
     topic: str = ""
+    file_stem: str = ""
     domain: str = "general"
     started_at: str = ""
     current_stage: str = ""
@@ -69,6 +108,12 @@ class PipelineState:
     output_files: Dict[str, str] = field(default_factory=dict)
     config: Dict[str, Any] = field(default_factory=dict)
     metrics: Dict[str, Any] = field(default_factory=dict)
+    search_mode: str = ""
+    query_source: str = ""
+    requested_query_count: int = 0
+    accepted_query_count: int = 0
+    query_file_sha256: str = ""
+    fallback_reason: str = ""
 
     def to_json(self, path: Path) -> None:
         path.write_text(json.dumps(asdict(self), ensure_ascii=False, indent=2), encoding="utf-8")
@@ -142,6 +187,9 @@ class PipelineRunner:
         publish_dir: Optional[Path] = None,
         publish_include_supporting: Optional[bool] = None,
         publish_force: Optional[bool] = None,
+        query_file: Optional[Path] = None,
+        allow_single_query_fallback: Optional[bool] = None,
+        fallback_reason: Optional[str] = None,
     ):
         self.topic = topic
         self.domain = domain
@@ -169,7 +217,8 @@ class PipelineRunner:
             self.layout = legacy_layout
             self.legacy_layout_mode = True
         self.review_level = self._resolve_review_level(review_level)
-        self.file_stem = self._sanitize_topic_for_filename(output_stem or topic)
+        self.raw_output_stem = output_stem or topic
+        self.file_stem = self._sanitize_topic_for_filename(self.raw_output_stem)
         self.publish_dir = Path(publish_dir).expanduser().resolve() if publish_dir else None
         publish_cfg = self.config.get("publish", {}) if isinstance(self.config, dict) else {}
         self.publish_include_supporting = bool(
@@ -211,8 +260,38 @@ class PipelineRunner:
         self.hidden_dir = self.layout.hidden_dir
         self.artifacts_dir = self.layout.artifacts_dir
         self.reference_dir = self.layout.reference_dir
+        self.input_dir = self.work_dir / "input"
         layout_cfg = self.config.get("layout", {}) if isinstance(self.config, dict) else {}
         self.data_extraction_table = self.reference_dir / layout_cfg.get("reference_data_extraction_name", "data_extraction_table.md")
+
+        query_cfg = self.config.get("query_input", {}) if isinstance(self.config, dict) else {}
+        self.query_input_dir_name = str(query_cfg.get("directory", "input"))
+        if Path(self.query_input_dir_name).is_absolute() or ".." in Path(self.query_input_dir_name).parts:
+            raise ValueError("query_input.directory 必须是 work_dir 内的安全相对路径")
+        self.query_input_dir = resolve_and_check(
+            self.work_dir / self.query_input_dir_name,
+            self.work_dir,
+            must_exist=False,
+        )
+        self.query_input_dir.mkdir(parents=True, exist_ok=True)
+        self.query_canonical_filename = str(query_cfg.get("canonical_filename", "queries.json"))
+        if Path(self.query_canonical_filename).name != self.query_canonical_filename:
+            raise ValueError("query_input.canonical_filename 必须是单个文件名")
+        self.min_queries = int(query_cfg.get("min_queries", 5))
+        self.max_queries = int(query_cfg.get("max_queries", 25))
+        config_fallback = bool(query_cfg.get("allow_single_query_fallback", False))
+        self.allow_single_query_fallback = (
+            config_fallback if allow_single_query_fallback is None else bool(allow_single_query_fallback)
+        )
+        self.fallback_authorization = (
+            "explicit_cli_fallback"
+            if allow_single_query_fallback is True
+            else ("config_fallback" if self.allow_single_query_fallback else "")
+        )
+        self.fallback_reason = (fallback_reason or "").strip()
+        self.explicit_query_file = (
+            Path(query_file).expanduser().resolve() if query_file is not None else None
+        )
 
         # 缓存策略（默认关闭，避免 run 目录 cache/api 文件爆炸）
         cache_cfg = self.config.get("cache", {}) if isinstance(self.config, dict) else {}
@@ -247,6 +326,7 @@ class PipelineRunner:
 
         self.state = PipelineState(
             topic=self.topic,
+            file_stem=self.file_stem,
             domain=self.domain,
             started_at=datetime.now().isoformat(),
             config=self.config,
@@ -260,9 +340,8 @@ class PipelineRunner:
     # ---------------- internal helpers ---------------- #
     @staticmethod
     def _sanitize_topic_for_filename(raw: str) -> str:
-        s = re.sub(r"[\\/\\:*?\"<>|]+", "", raw.strip())
-        s = re.sub(r"\\s+", "-", s)
-        return s[:80] or "topic"
+        """兼容旧调用方；实际规则由 query_contract 统一维护。"""
+        return normalize_output_stem(raw)
 
     def _load_config(self, path: Path) -> dict:
         if not path.exists():
@@ -280,6 +359,127 @@ class PipelineRunner:
 
     def save_state(self) -> None:
         self.state.to_json(self._state_file())
+
+    def _query_template_path(self) -> Path:
+        return resolve_and_check(
+            self.query_input_dir / self.query_canonical_filename,
+            self.work_dir,
+            must_exist=False,
+        )
+
+    def _write_query_template(self) -> Path:
+        path = self._query_template_path()
+        if not path.exists():
+            path.write_text('{"queries": []}\n', encoding="utf-8")
+            self.state.metrics["generated_query_template_sha256"] = sha256_file(path)
+        return path
+
+    def _stage_explicit_query_file(self, source: Path) -> Path:
+        if not source.exists():
+            raise QueryInputError(f"显式查询文件不存在：{source}")
+        if not source.is_file():
+            raise QueryInputError(f"显式查询路径不是普通文件：{source}")
+        destination = self._query_template_path()
+        if source.resolve() != destination.resolve():
+            shutil.copy2(source, destination)
+        return destination
+
+    def _discover_query_file(self) -> tuple[Optional[Path], str]:
+        if self.explicit_query_file is not None:
+            staged = self._stage_explicit_query_file(self.explicit_query_file)
+            return staged, f"explicit:{self.explicit_query_file}"
+
+        candidates: list[tuple[Path, str]] = [
+            (self._query_template_path(), "input:queries.json"),
+            (
+                self.query_input_dir / f"queries_{self.file_stem}.json",
+                f"input:queries_{self.file_stem}.json",
+            ),
+            (
+                self.artifacts_dir / f"queries_{self.file_stem}.json",
+                f"artifacts:queries_{self.file_stem}.json",
+            ),
+        ]
+        for legacy_stem in legacy_output_stems(self.raw_output_stem):
+            candidates.append(
+                (
+                    self.artifacts_dir / f"queries_{legacy_stem}.json",
+                    f"legacy_artifacts:queries_{legacy_stem}.json",
+                )
+            )
+
+        found: list[tuple[Path, str]] = []
+        seen: set[Path] = set()
+        for path, source in candidates:
+            resolved = path.expanduser().resolve()
+            if resolved in seen or not resolved.exists():
+                continue
+            template_hash = str(self.state.metrics.get("generated_query_template_sha256") or "")
+            template_path = self.state.input_files.get("query_template", "")
+            if template_hash and template_path:
+                recorded_template = Path(template_path).expanduser().resolve()
+                if resolved == recorded_template and sha256_file(resolved) == template_hash:
+                    # 阶段 0 自动生成且从未填充的模板等价于“尚未提供查询”。
+                    continue
+            seen.add(resolved)
+            found.append((resolved, source))
+        if len(found) > 1:
+            paths = "\n".join(f"  - {path}" for path, _ in found)
+            raise QueryInputError(
+                "发现多个查询文件，无法确定唯一输入；请删除冲突文件或使用 --query-file：\n"
+                + paths
+            )
+        return found[0] if found else (None, "")
+
+    def _validate_search_log(self, path: Path, expected_mode: str) -> bool:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            print(f"  ✗ Search Log 无法读取：{path}（{exc}）")
+            return False
+        required = {
+            "search_mode",
+            "query_source",
+            "requested_query_count",
+            "accepted_query_count",
+            "fallback_reason",
+        }
+        missing = sorted(required - set(data))
+        if missing or data.get("search_mode") != expected_mode:
+            print(
+                f"  ✗ Search Log 契约不完整或模式不匹配：missing={missing}, "
+                f"mode={data.get('search_mode')!r}"
+            )
+            return False
+        return True
+
+    def _validate_resume_query_input(self) -> bool:
+        if "1_search" not in self.state.completed_stages:
+            return True
+        if not self.state.search_mode:
+            print("⚠️ 历史 checkpoint 缺少查询审计字段，按兼容模式继续，不补写推断值。")
+            return True
+        if self.state.search_mode == "multi_query":
+            raw_path = self.state.input_files.get("query_file", "")
+            query_file = Path(raw_path) if raw_path else Path()
+            if query_file == Path() or not query_file.exists() or not query_file.is_file():
+                print(f"✗ resume 查询文件缺失：{raw_path or '(未记录)'}")
+                return False
+            fingerprint = sha256_file(query_file)
+            if self.state.query_file_sha256 and fingerprint != self.state.query_file_sha256:
+                print("✗ resume 查询文件指纹已变化；请确认输入后启动新的 run。")
+                return False
+            if self.explicit_query_file is not None:
+                if not self.explicit_query_file.exists() or not self.explicit_query_file.is_file():
+                    print(f"✗ resume 显式查询文件缺失：{self.explicit_query_file}")
+                    return False
+                if self.state.query_file_sha256 and sha256_file(self.explicit_query_file) != self.state.query_file_sha256:
+                    print("✗ resume 显式查询文件与 checkpoint 指纹不一致。")
+                    return False
+        elif self.state.search_mode == "single_query" and not self.state.fallback_reason:
+            print("✗ 单查询 checkpoint 缺少 fallback_reason，不能作为已审计结果恢复。")
+            return False
+        return True
 
     def _run_script(self, script_name: str, args: List[str]) -> bool:
         script_path = Path(__file__).parent / script_name
@@ -376,7 +576,12 @@ class PipelineRunner:
         wc = self._output_path("working_conditions")
         self.state.output_files["working_conditions"] = str(wc)
         self._write_working_conditions_skeleton(wc)
-        self.state.completed_stages.append("0_setup")
+        query_template = self._write_query_template()
+        self.state.input_files.setdefault("query_template", str(query_template))
+        print(f"  查询计划路径：{query_template}")
+        print("  请填充查询 JSON 后再启动阶段 1，或使用 --query-file 显式传入。")
+        if "0_setup" not in self.state.completed_stages:
+            self.state.completed_stages.append("0_setup")
         self.save_state()
         return True
 
@@ -385,7 +590,19 @@ class PipelineRunner:
         papers = Path(self.state.input_files.get("papers", "")) if self.state.input_files else Path()
         if papers.exists() and papers.is_file() and papers.suffix.lower() == ".jsonl":
             print(f"  已存在候选库: {papers}")
-            self.state.completed_stages.append("1_search")
+            search_log_raw = self.state.output_files.get("search_log", "")
+            search_log = Path(search_log_raw) if search_log_raw else Path()
+            if self.state.search_mode not in {"multi_query", "single_query"}:
+                print("  ✗ 候选库缺少 search_mode 审计字段，不能将阶段 1 标记为完成。")
+                return False
+            if search_log == Path() or not search_log.exists() or not self._validate_search_log(
+                search_log,
+                self.state.search_mode,
+            ):
+                print("  ✗ 候选库缺少有效 Search Log，不能将阶段 1 标记为完成。")
+                return False
+            if "1_search" not in self.state.completed_stages:
+                self.state.completed_stages.append("1_search")
             self.save_state()
             return True
         if "papers" in (self.state.input_files or {}) and (
@@ -402,12 +619,28 @@ class PipelineRunner:
         output_file = self.artifacts_dir / f"papers_{self.file_stem}.jsonl"
         search_log = self.artifacts_dir / f"search_log_{self.file_stem}.json"
 
-        # 检查是否存在 AI 生成的查询文件
-        queries_file = self.artifacts_dir / f"queries_{self.file_stem}.json"
+        try:
+            queries_file, query_source = self._discover_query_file()
+        except QueryInputError as exc:
+            print(f"  ✗ 查询输入冲突或不可用：{exc}")
+            return False
 
-        if queries_file.exists():
-            # 使用 AI 生成的多查询检索
-            print(f"  使用 AI 生成的查询: {queries_file}")
+        if queries_file is not None:
+            try:
+                query_plan = load_query_plan(
+                    queries_file,
+                    min_queries=self.min_queries,
+                    max_queries=self.max_queries,
+                )
+            except QueryInputError as exc:
+                print(f"  ✗ 查询文件不符合 schema/数量契约：{exc}")
+                print(
+                    '  期望格式：{"queries": [{"query": "...", "rationale": "..."}]}；'
+                    f"有效查询数 {self.min_queries}–{self.max_queries}。"
+                )
+                return False
+
+            print(f"  使用多查询输入: {queries_file}")
             cache_args: list[str] = []
             if self.cache_dir is not None:
                 cache_args = ["--cache-dir", str(self.cache_dir)]
@@ -417,15 +650,38 @@ class PipelineRunner:
                     "--queries", str(queries_file),
                     "--output", str(output_file),
                     "--search-log", str(search_log),
+                    "--query-source", query_source,
+                    "--min-queries", str(self.min_queries),
+                    "--max-queries", str(self.max_queries),
                     "--max-results-per-query", str(max_results_per_query),
                     "--max-total", str(max_total),
                     *cache_args,
                 ],
             )
+            if not ok or not output_file.exists() or not search_log.exists():
+                print("  ✗ 多查询检索未生成完整的 papers/Search Log。")
+                return False
+            if not self._validate_search_log(search_log, "multi_query"):
+                return False
+
+            self.state.search_mode = "multi_query"
+            self.state.query_source = query_source
+            self.state.requested_query_count = query_plan.requested_count
+            self.state.accepted_query_count = query_plan.accepted_count
+            self.state.query_file_sha256 = sha256_file(queries_file)
+            self.state.fallback_reason = ""
+            self.state.input_files["query_file"] = str(queries_file)
         else:
-            # 降级方案：单一查询检索
-            print(f"  ⚠️ 未找到查询文件，使用单一查询检索（降级方案）")
-            print(f"  提示：可以让 AI 生成多查询以提升检索覆盖面")
+            if not self.allow_single_query_fallback:
+                print("  ✗ 未找到有效多查询输入；默认 fail-closed，不会自动执行单查询。")
+                print(
+                    f"  请填写 {self._query_template_path()}，或使用 --query-file；"
+                    "确需后备时显式传 --allow-single-query-fallback。"
+                )
+                return False
+
+            reason = self.fallback_reason or "未提供多查询文件，调用方显式授权单查询后备"
+            print("  ⚠️ 已显式授权单查询后备；该模式会写入警告和审计字段。")
             cache_args: list[str] = []
             if self.cache_dir is not None:
                 cache_args = ["--cache-dir", str(self.cache_dir)]
@@ -438,16 +694,37 @@ class PipelineRunner:
                     *cache_args,
                 ],
             )
+            if not ok or not output_file.exists():
+                print("  ✗ 单查询后备检索未生成 papers 文件。")
+                return False
+            fallback_log = {
+                "search_mode": "single_query",
+                "query_source": self.fallback_authorization or "explicit_fallback",
+                "requested_query_count": 1,
+                "accepted_query_count": 1,
+                "fallback_reason": reason,
+                "topic": self.topic,
+                "warning": "显式单查询后备结果，不得解释为多查询检索",
+            }
+            search_log.write_text(
+                json.dumps(fallback_log, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            if not self._validate_search_log(search_log, "single_query"):
+                return False
+            self.state.search_mode = "single_query"
+            self.state.query_source = fallback_log["query_source"]
+            self.state.requested_query_count = 1
+            self.state.accepted_query_count = 1
+            self.state.query_file_sha256 = ""
+            self.state.fallback_reason = reason
 
-        if ok and output_file.exists():
-            self.state.input_files["papers"] = str(output_file)
-            self.state.output_files["search_log"] = str(search_log) if search_log.exists() else ""
+        self.state.input_files["papers"] = str(output_file)
+        self.state.output_files["search_log"] = str(search_log)
+        if "1_search" not in self.state.completed_stages:
             self.state.completed_stages.append("1_search")
-            self.save_state()
-            return True
-
-        print("  ✗ 检索失败：请手动生成 papers.jsonl 后重试。")
-        return False
+        self.save_state()
+        return True
 
     def run_stage_2_dedupe(self) -> bool:
         print("\n[阶段2] 去重")
@@ -882,7 +1159,7 @@ class PipelineRunner:
         return False
 
     # ---------------- orchestrator ---------------- #
-    def run(self, resume_from: Optional[int]) -> bool:
+    def run(self, resume_from: Optional[int], prepare_only: bool = False) -> bool:
         print("=" * 70)
         print("相关性驱动系统综述 Pipeline Runner")
         print("=" * 70)
@@ -903,6 +1180,16 @@ class PipelineRunner:
                 print(f"⚠️ 恢复状态失败: {e}")
                 print("✗ 为避免覆盖已有 checkpoint，本轮停止；请先修复或备份状态文件。")
                 return False
+            if not self._validate_resume_query_input():
+                return False
+
+        if prepare_only:
+            print("\n▶ 准备查询输入（prepare-only）")
+            if not self.run_stage_0_setup():
+                return False
+            print(f"✓ 已准备查询文件：{self._query_template_path()}")
+            print("填充后使用 --resume <work-dir> --resume-from 1 继续。")
+            return True
 
         stages = [
             ("0_setup", self.run_stage_0_setup),
@@ -1011,6 +1298,24 @@ def main() -> int:
     parser.add_argument("--work-dir", type=Path, required=False, help="工作目录；默认使用 .bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/research-literature-review/<run-id>")
     parser.add_argument("--review-level", choices=["premium", "standard", "basic"], help="档位（可选）")
     parser.add_argument("--output-stem", help="文件名前缀（可选）")
+    parser.add_argument(
+        "--query-file",
+        "--queries",
+        dest="query_file",
+        type=Path,
+        help="多查询 JSON 文件；显式输入优先并复制到当前 run 的 input/queries.json",
+    )
+    parser.add_argument(
+        "--allow-single-query-fallback",
+        action="store_true",
+        help="显式授权在完全缺少查询文件时执行一次单查询后备（默认关闭）",
+    )
+    parser.add_argument("--fallback-reason", help="单查询后备原因（写入 state 与 Search Log）")
+    parser.add_argument(
+        "--prepare-only",
+        action="store_true",
+        help="只执行阶段 0 并生成 input/queries.json，不启动检索",
+    )
     parser.add_argument("--resume", type=Path, help="从已有 work_dir 恢复（自动读取其中的 pipeline_state.json）")
     parser.add_argument("--resume-from", type=int, help="从阶段编号开始执行（0-based）")
     parser.add_argument("--publish-dir", type=Path, help="正式交付目录（与内部 work_dir 分离）")
@@ -1024,8 +1329,14 @@ def main() -> int:
 
     topic = args.topic
     work_dir = args.work_dir
+    output_stem = args.output_stem
     if args.resume:
         work_dir = args.resume if args.resume.is_dir() else args.resume.parent
+        resume_topic, resume_stem = _load_resume_identity(work_dir)
+        if not topic:
+            topic = resume_topic
+        if not output_stem:
+            output_stem = resume_stem
     if args.resume and not topic:
         topic = Path(work_dir).name
     if not topic:
@@ -1048,12 +1359,15 @@ def main() -> int:
         config_path=args.config,
         work_dir=work_dir,
         review_level=args.review_level,
-        output_stem=args.output_stem,
+        output_stem=output_stem,
         publish_dir=args.publish_dir,
         publish_include_supporting=args.include_supporting if args.include_supporting else None,
         publish_force=args.force_publish if args.force_publish else None,
+        query_file=args.query_file,
+        allow_single_query_fallback=True if args.allow_single_query_fallback else None,
+        fallback_reason=args.fallback_reason,
     )
-    ok = runner.run(resume_from=args.resume_from)
+    ok = runner.run(resume_from=args.resume_from, prepare_only=args.prepare_only)
     return 0 if ok else 1
 
 

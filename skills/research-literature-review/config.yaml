@@ -2,7 +2,7 @@
 
 skill_info:
   name: research-literature-review
-  version: 1.2.0
+  version: 1.3.0
   description: 令人印象深刻的精准、全面的专家级综述；兼容旧名 systematic-literature-review 的 prompt 触发
   author: "Bensz Conan"
   category: writing
@@ -44,6 +44,16 @@ review_levels:
     "express": "basic"
     "fast": "basic"
     "quick": "basic"
+
+# ============================================================================
+# 查询输入契约
+# ============================================================================
+query_input:
+  directory: "input"
+  canonical_filename: "queries.json"
+  min_queries: 5
+  max_queries: 25
+  allow_single_query_fallback: false
 
 # ============================================================================
 # 检索配置

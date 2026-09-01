@@ -10,16 +10,16 @@ run_pipeline.py - pipeline_runner 的轻量封装
 from __future__ import annotations
 
 import argparse
-import re
 import subprocess
 import sys
 from pathlib import Path
 
+from query_contract import normalize_output_stem
+
 
 def _sanitize_topic(raw: str) -> str:
-    s = re.sub(r"[\\/\\:*?\"<>|]+", "", raw.strip())
-    s = re.sub(r"\s+", "-", s)
-    return s[:80] or "topic"
+    """兼容旧调用方；实际规则由 query_contract 统一维护。"""
+    return normalize_output_stem(raw)
 
 
 def main() -> int:
@@ -36,6 +36,10 @@ def main() -> int:
     parser.add_argument("--config", type=Path, default=Path(__file__).parent.parent / "config.yaml")
     parser.add_argument("--review-level", choices=["premium", "standard", "basic"], help="档位（可选）")
     parser.add_argument("--output-stem", help="文件名前缀（可选）")
+    parser.add_argument("--query-file", "--queries", dest="query_file", type=Path, help="多查询 JSON 文件")
+    parser.add_argument("--allow-single-query-fallback", action="store_true", help="显式授权单查询后备")
+    parser.add_argument("--fallback-reason", help="单查询后备原因（用于审计）")
+    parser.add_argument("--prepare-only", action="store_true", help="只生成查询输入模板，不启动检索")
     parser.add_argument("--resume-from", type=int, help="从阶段编号开始执行（0-based）")
     parser.add_argument("--publish-dir", type=Path, help="正式交付目录（与内部 work_dir 分离）")
     parser.add_argument("--include-supporting", action="store_true", help="同时发布 tex/bib/工作条件/验证报告")
@@ -69,6 +73,14 @@ def main() -> int:
         cmd += ["--review-level", args.review_level]
     if args.output_stem:
         cmd += ["--output-stem", args.output_stem]
+    if args.query_file is not None:
+        cmd += ["--query-file", str(args.query_file.expanduser().resolve())]
+    if args.allow_single_query_fallback:
+        cmd += ["--allow-single-query-fallback"]
+    if args.fallback_reason:
+        cmd += ["--fallback-reason", args.fallback_reason]
+    if args.prepare_only:
+        cmd += ["--prepare-only"]
     if args.resume_from is not None:
         cmd += ["--resume-from", str(args.resume_from)]
     if args.publish_dir is not None:
