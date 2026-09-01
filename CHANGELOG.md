@@ -10,6 +10,7 @@
 
 ### Changed（变更）
 
+- `research-literature-review` 升级到 `v1.3.0`：建立显式多查询 JSON 契约和统一 stem，阶段 1 默认 fail-closed；新增可审计的单查询后备、查询指纹 resume 校验、Search Log 字段与离线回归测试。
 - `skills/`：对齐 `docs/prompts/005-bensz-skill-workspace.md` 的任务级中间文件契约；新运行统一使用 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`，旧目录仅作显式兼容读取/迁移/清理。
 - `skills/nsfc-humanization/` 升级到 `v1.2.0`：基于工程协议腔与技术型 NSFC 文本优化计划，新增词语/句法/段落/章节四层诊断、术语表与章节去重、安全不变量和匿名回归样例；完成 1 轮 `auto-test-skill`（含 B 轮质量检查）并压缩工作型 Markdown，根级 README、skills 总览和技能 README 已同步。
 - `nsfc-justification-writer`：默认流程升级为完全自动，自动完成目标选择/创建、Tier1+Tier2、保守假设、成稿、正文-only 重试、备份和写入；移除中途用户确认/审核节点，保留 `--dry-run`、白名单、引用守护、diff 与回滚，版本推进至 v1.3.0。
