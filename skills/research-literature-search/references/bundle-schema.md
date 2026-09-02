@@ -9,7 +9,7 @@ contract_version / candidate_schema_version / search_skill_version / search_run_
 topic / domain / topic_hash
 query_plan {source, sha256, requested_count, accepted_count, items[]}
 filters / provider_policy / attempts
-counts {raw, normalized, deduped, failed, dropped}
+counts {raw, normalized, deduped, failed, empty_records, invalid_records, normalization_failed, dropped}
 truncation / dedupe / abstract_enrichment
 artifacts / status / failure_code / warnings / created_at / cache
 ```

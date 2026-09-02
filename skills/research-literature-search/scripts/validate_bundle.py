@@ -11,7 +11,7 @@ from typing import Any
 
 from candidate_schema import SCHEMA_VERSION, validate_candidates
 from manifest import ARTIFACT_NAMES, sha256_file
-from query_contract import CONTRACT_VERSION
+from rls_contract import CONTRACT_VERSION
 
 
 def _read_jsonl(path: Path) -> list[Any]:

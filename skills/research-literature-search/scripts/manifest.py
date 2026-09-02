@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from candidate_schema import SCHEMA_VERSION
-from query_contract import CONTRACT_VERSION
+from rls_contract import CONTRACT_VERSION
 
 
-SEARCH_SKILL_VERSION = "1.0.0"
+SEARCH_SKILL_VERSION = "1.0.2"
 ARTIFACT_NAMES = (
     "candidates_raw",
     "candidates_normalized",

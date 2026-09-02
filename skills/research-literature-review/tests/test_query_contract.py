@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -30,6 +31,35 @@ def write_queries(path: Path, count: int = 5) -> None:
 
 
 class QuerySchemaTests(unittest.TestCase):
+    def test_search_validator_isolated_from_review_query_contract(self) -> None:
+        search_scripts = SKILL_ROOT.parent / "research-literature-search" / "scripts"
+        probe = f"""
+import json
+import sys
+import tempfile
+from pathlib import Path
+sys.path.insert(0, {str(SCRIPT_DIR)!r})
+import query_contract
+sys.path.insert(0, {str(search_scripts)!r})
+from search_runner import run_search
+
+def provider(query, **kwargs):
+    return [{{'id': 'W1', 'title': 'Valid paper', 'publication_year': 2024}}]
+
+from validate_bundle import validate_bundle
+tmp = tempfile.TemporaryDirectory()
+root = Path(tmp.name)
+queries = root / 'queries.json'
+queries.write_text(json.dumps({{'queries': ['q1', 'q2', 'q3', 'q4', 'q5']}}))
+bundle = root / 'bundle'
+run_search(topic='topic', query_file=queries, output_dir=bundle, scope_root=root,
+           provider_order=['openalex'], provider_functions={{'openalex': provider}})
+assert validate_bundle(bundle) == []
+tmp.cleanup()
+"""
+        completed = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True)
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+
     def test_supported_json_shapes_are_normalized(self) -> None:
         cases = [
             {"queries": [{"query": " alpha ", "rationale": " why "}, "beta"]},

@@ -70,7 +70,9 @@ manifest 的 `status` 只有三种语义：`success`（完整成功）、`partia
 
 ## Provider 与降级
 
-默认行为锁定为 OpenAlex 主力；结果不足时按策略补充 Semantic Scholar/Crossref。`mcp` 与 `duckduckgo` 在纯 Python runner 中记录为 `skipped/host tool required`，不能伪装成功。每次尝试都写入 manifest `attempts` 和 Search Log。新 provider 或 union 召回策略需要升级 contract，不在本版本隐式引入。
+默认行为锁定为 OpenAlex 主力；结果不足时按策略补充 Semantic Scholar/Crossref。`mcp` 与 `duckduckgo` 在纯 Python runner 中记录为 `skipped/host tool required`，不能伪装成功。每次尝试都写入 manifest `attempts` 和 Search Log。新 provider 或 union 召回策略需要升级 contract，不在本版本隐式引入。manifest contract 常量由独立命名的 `rls_contract.py` 提供，避免被下游 review skill 的同名模块遮蔽。
+
+Provider 返回 `null` 结果或列表中混入 `null` / 非对象条目时，边界层必须跳过无效条目而不能调用 `.get()`；合法条目继续参与召回、规范化和去重。每次尝试在 `attempts` 中记录 `empty_records` / `invalid_records`，运行级 `counts` 同步累计并写入 warning。若没有任何合法候选，使用 `no_valid_candidates` 说明是数据无效导致的失败；不得静默丢弃或把空记录计入召回配额。
 
 ## 摘要补全
 

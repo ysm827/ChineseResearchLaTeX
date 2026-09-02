@@ -2,9 +2,9 @@
 
 本 README 面向**使用者**：如何触发并正确使用 `research-literature-review` skill。执行指令与硬性规范在 `SKILL.md`；默认参数在 `config.yaml`。
 
-当前版本：`v1.3.0`。
+当前版本：`v1.3.1`。
 
-检索依赖：`research-literature-search` `rls.v1`（`research-literature-search` v1.0.0+）。review 负责评分、选文、写作与 PDF/Word 导出；阶段 1/2 只消费 search 的 manifest bundle，不再复制 provider 或二次 canonical 去重。独立安装时可用 `--search-skill-root` 指定依赖路径。
+检索依赖：`research-literature-search` `rls.v1`（`research-literature-search` v1.0.2+）。review 负责评分、选文、写作与 PDF/Word 导出；阶段 1/2 只消费 search 的 manifest bundle，不再复制 provider 或二次 canonical 去重。独立安装时可用 `--search-skill-root` 指定依赖路径。
 
 ## 旧名兼容
 
@@ -90,6 +90,8 @@ provenance.jsonl / dedupe_map.json / search_log.json
 ```
 
 `manifest.json` 记录 `rls.v1`、候选 schema、查询 SHA-256、provider attempts、截断/失败统计和每个 artifact hash。阶段 2 仅做完整性验证并保留旧 `2_dedupe` checkpoint 名称；缺依赖、契约不兼容、文件删除或 hash 改变时 fail-closed。
+
+review 与 search 可能在同一 Python 进程内运行；search 的 manifest 校验使用独立命名的 `rls_contract.py`，不会与 review 自身的 `query_contract.py` 发生模块遮蔽。
 
 ## 字数预算的设计哲学
 

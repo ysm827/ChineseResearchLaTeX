@@ -150,7 +150,7 @@ def dedupe_records(records: list[dict[str, Any]], *, title_similarity: float = .
     return canonical, edges
 
 
-def read_jsonl(path: Path) -> list[dict[str, Any]]:
+def read_jsonl(path: Path) -> list[Any]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
@@ -169,14 +169,23 @@ def main() -> int:
     parser.add_argument("--year-window", type=int, default=1)
     args = parser.parse_args()
     raw = read_jsonl(args.input)
-    candidates = [normalize_record(item, provider=str(item.get("source") or "legacy"), fallback_index=i) for i, item in enumerate(raw)]
+    candidates: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    for index, item in enumerate(raw, 1):
+        if item is None:
+            skipped.append({"index": index, "code": "empty_record"})
+            continue
+        if not isinstance(item, dict):
+            skipped.append({"index": index, "code": "invalid_record_type", "type": type(item).__name__})
+            continue
+        candidates.append(normalize_record(item, provider=str(item.get("source") or "legacy"), fallback_index=index))
     _, errors = validate_candidates(candidates)
     if errors:
         parser.error("invalid candidates: " + "; ".join(errors[:5]))
     result, edges = dedupe_records(candidates, title_similarity=args.title_sim, token_threshold=args.token_jaccard, year_window=args.year_window)
     write_jsonl(args.output, result)
     args.map.parent.mkdir(parents=True, exist_ok=True)
-    args.map.write_text(json.dumps({"schema_version": "rls.dedupe.v1", "input_count": len(candidates), "output_count": len(result), "merged_count": len(edges), "cross_doi_preprint_merges": sum(1 for edge in edges if edge["reason"] == "cross_doi_preprint_to_published"), "params": {"title_similarity_threshold": args.title_sim, "token_jaccard_threshold": args.token_jaccard, "year_window": args.year_window}, "edges": edges}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    args.map.write_text(json.dumps({"schema_version": "rls.dedupe.v1", "input_count": len(raw), "valid_input_count": len(candidates), "skipped_records": skipped, "output_count": len(result), "merged_count": len(edges), "cross_doi_preprint_merges": sum(1 for edge in edges if edge["reason"] == "cross_doi_preprint_to_published"), "params": {"title_similarity_threshold": args.title_sim, "token_jaccard_threshold": args.token_jaccard, "year_window": args.year_window}, "edges": edges}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return 0
 
 

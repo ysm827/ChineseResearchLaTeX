@@ -14,6 +14,14 @@ DOI_RE = re.compile(r"^10\.\d{4,9}/\S+$", re.IGNORECASE)
 IDENTIFIER_KEYS = ("doi", "pmid", "arxiv", "openalex", "semantic_scholar")
 
 
+class CandidateNormalizationError(ValueError):
+    """A provider candidate cannot enter the canonical schema."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 def normalize_doi(value: Any) -> str | None:
     if value is None:
         return None
@@ -105,7 +113,7 @@ def _source_envelope(raw: dict[str, Any], *, provider: str, query_id: str | None
 
 
 def normalize_record(
-    raw: dict[str, Any],
+    raw: Any,
     *,
     provider: str = "unknown",
     query_id: str | None = None,
@@ -113,8 +121,10 @@ def normalize_record(
     fallback_index: int = 0,
 ) -> dict[str, Any]:
     """Map provider/legacy fields to the canonical record plus flat compatibility view."""
+    if raw is None:
+        raise CandidateNormalizationError("empty_record", "candidate record is null")
     if not isinstance(raw, dict):
-        raise ValueError("candidate record must be an object")
+        raise CandidateNormalizationError("invalid_record_type", "candidate record must be an object")
     identifiers: dict[str, str | None] = {key: None for key in IDENTIFIER_KEYS}
     incoming = raw.get("identifiers") if isinstance(raw.get("identifiers"), dict) else {}
     for key in IDENTIFIER_KEYS:

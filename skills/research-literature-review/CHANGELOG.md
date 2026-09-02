@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed（manifest 契约模块隔离 - 2026-09-02）
+
+- 修复 review runner 在进程内校验 search manifest 时被同名 `query_contract` 模块遮蔽的问题；search validator 现在通过 `rls_contract` 读取 `rls.v1`。
+
 ### Changed（拆分 research-literature-search 依赖 - 2026-09-02）
 
 - `research-literature-review` 增加必需依赖 `research-literature-search`（contract `rls.v1`）及显式 `--search-skill-root` resolver。

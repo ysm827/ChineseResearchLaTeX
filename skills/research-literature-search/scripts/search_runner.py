@@ -24,7 +24,8 @@ try:
     from dedupe_papers import dedupe_records
     from manifest import ARTIFACT_NAMES, SEARCH_SKILL_VERSION, build_manifest, write_json
     from normalize_papers import write_jsonl
-    from query_contract import CONTRACT_VERSION, QueryInputError, load_query_plan
+    from query_contract import QueryInputError, load_query_plan
+    from rls_contract import CONTRACT_VERSION
     from validate_bundle import validate_bundle
     from providers import search_crossref, search_openalex, search_semantic_scholar
 except ModuleNotFoundError:
@@ -33,7 +34,8 @@ except ModuleNotFoundError:
     from dedupe_papers import dedupe_records
     from manifest import ARTIFACT_NAMES, SEARCH_SKILL_VERSION, build_manifest, write_json
     from normalize_papers import write_jsonl
-    from query_contract import CONTRACT_VERSION, QueryInputError, load_query_plan
+    from query_contract import QueryInputError, load_query_plan
+    from rls_contract import CONTRACT_VERSION
     from validate_bundle import validate_bundle
     from providers import search_crossref, search_openalex, search_semantic_scholar
 
@@ -177,6 +179,9 @@ def run_search(
         return result
     warnings: list[str] = []
     attempts: list[dict[str, Any]] = []
+    empty_records = 0
+    invalid_records = 0
+    normalization_failed = 0
     run_id = uuid.uuid4().hex
     paths = {name: bundle / {"candidates_raw": "candidates_raw.jsonl", "candidates_normalized": "candidates_normalized.jsonl", "candidates_deduped": "candidates_deduped.jsonl", "provenance": "provenance.jsonl", "dedupe_map": "dedupe_map.json", "search_log": "search_log.json"}[name] for name in ARTIFACT_NAMES}
     for path in paths.values():
@@ -229,14 +234,44 @@ def run_search(
                     kwargs["max_year"] = filters["max_year"]
                 result = fn(text, **kwargs)
                 if result is None:
-                    result = []
+                    item = {"provider": provider, "status": "empty", "results": 0, "empty_records": 1, "invalid_records": 0}
+                    query_attempts.append(item)
+                    attempts.append({"query_id": query_id, **item})
+                    empty_records += 1
+                    warnings.append(f"{query_id}/{provider}: provider returned an empty record result")
+                    continue
                 if not isinstance(result, (list, tuple)):
                     raise TypeError(f"provider returned {type(result).__name__}, expected list")
-                result = [item for item in result if isinstance(item, dict)]
-                item = {"provider": provider, "status": "success", "results": len(result)}
+                valid_result: list[dict[str, Any]] = []
+                empty_count = 0
+                invalid_count = 0
+                for candidate in result:
+                    if candidate is None:
+                        empty_count += 1
+                    elif isinstance(candidate, dict):
+                        valid_result.append(candidate)
+                    else:
+                        invalid_count += 1
+                empty_records += empty_count
+                invalid_records += invalid_count
+                item_status = "partial" if empty_count or invalid_count else "success"
+                item = {
+                    "provider": provider,
+                    "status": item_status,
+                    "results": len(valid_result),
+                    "empty_records": empty_count,
+                    "invalid_records": invalid_count,
+                }
                 query_attempts.append(item)
                 attempts.append({"query_id": query_id, **item})
-                hits.extend((provider, row) for row in result)
+                if empty_count or invalid_count:
+                    details = []
+                    if empty_count:
+                        details.append(f"{empty_count} empty")
+                    if invalid_count:
+                        details.append(f"{invalid_count} invalid")
+                    warnings.append(f"{query_id}/{provider}: skipped " + ", ".join(details) + " record(s)")
+                hits.extend((provider, row) for row in valid_result)
                 # OpenAlex is the main source; only supplement if clearly below target.
                 if len(hits) >= max(5, int(max_results_per_query * 0.7)):
                     break
@@ -250,6 +285,7 @@ def run_search(
             try:
                 record = normalize_record(raw, provider=provider, query_id=query_id, rank=rank, fallback_index=len(normalized) + 1)
             except ValueError as exc:
+                normalization_failed += 1
                 warnings.append(f"{query_id}/{provider}/rank{rank}: normalization failed: {exc}")
                 continue
             if _filter_record(record, filters):
@@ -273,10 +309,10 @@ def run_search(
     write_jsonl(paths["provenance"], sorted(provenance_rows, key=lambda item: (str(item.get("record_id")), str(item.get("provider")), int(item.get("rank") or 0))))
     write_json(paths["dedupe_map"], {"schema_version": "rls.dedupe.v1", "input_count": len(normalized), "output_count": len(canonical), "merged_count": len(edges), "edges": edges})
     status = "success" if canonical and not warnings else ("partial_success" if canonical else "failed")
-    failure_code = None if canonical else "no_provider"
-    log = {"search_mode": "multi_query", "query_source": query_source or str(query_file), "requested_query_count": plan.requested_count, "accepted_query_count": plan.accepted_count, "fallback_reason": "", "total_returned": len(raw_rows), "total_unique": len(canonical), "queries": query_logs, "attempts": attempts, "warnings": sorted(set(warnings))}
+    failure_code = None if canonical else ("no_valid_candidates" if empty_records or invalid_records or normalization_failed else "no_provider")
+    log = {"search_mode": "multi_query", "query_source": query_source or str(query_file), "requested_query_count": plan.requested_count, "accepted_query_count": plan.accepted_count, "fallback_reason": "", "total_returned": len(raw_rows), "total_unique": len(canonical), "empty_records": empty_records, "invalid_records": invalid_records, "normalization_failed": normalization_failed, "queries": query_logs, "attempts": attempts, "warnings": sorted(set(warnings))}
     write_json(paths["search_log"], log)
-    manifest = build_manifest(bundle, topic=topic, domain=domain, query_plan={"source": plan.source, "sha256": plan.sha256, "requested_count": plan.requested_count, "accepted_count": plan.accepted_count, "items": plan.queries}, filters=filters, provider_policy={"requested_order": order, "effective_order": order, "fallback_enabled": fallback_enabled, "config_fingerprint": policy_fingerprint}, attempts=attempts, counts={"raw": len(raw_rows), "normalized": len(normalized), "deduped": len(canonical), "failed": sum(1 for item in attempts if item["status"] == "error"), "dropped": dropped}, truncation={"applied": dropped > 0, "limit": max_total, "dropped_count": dropped}, dedupe={"parameters": dedupe_params, "map_path": "dedupe_map.json", "canonical_merges": len(edges)}, abstract_enrichment={"mode": "disabled", "attempted": 0, "filled": 0, "missing": sum(1 for item in canonical if item.get("abstract_status") == "missing")}, status=status, failure_code=failure_code, warnings=warnings, artifacts=paths, search_run_id=run_id, cache={"mode": "disabled"})
+    manifest = build_manifest(bundle, topic=topic, domain=domain, query_plan={"source": plan.source, "sha256": plan.sha256, "requested_count": plan.requested_count, "accepted_count": plan.accepted_count, "items": plan.queries}, filters=filters, provider_policy={"requested_order": order, "effective_order": order, "fallback_enabled": fallback_enabled, "config_fingerprint": policy_fingerprint}, attempts=attempts, counts={"raw": len(raw_rows), "normalized": len(normalized), "deduped": len(canonical), "failed": sum(1 for item in attempts if item["status"] == "error"), "empty_records": empty_records, "invalid_records": invalid_records, "normalization_failed": normalization_failed, "dropped": dropped}, truncation={"applied": dropped > 0, "limit": max_total, "dropped_count": dropped}, dedupe={"parameters": dedupe_params, "map_path": "dedupe_map.json", "canonical_merges": len(edges)}, abstract_enrichment={"mode": "disabled", "attempted": 0, "filled": 0, "missing": sum(1 for item in canonical if item.get("abstract_status") == "missing")}, status=status, failure_code=failure_code, warnings=warnings, artifacts=paths, search_run_id=run_id, cache={"mode": "disabled"})
     write_json(bundle / "manifest.json", manifest)
     return manifest
 

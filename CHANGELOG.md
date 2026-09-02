@@ -8,6 +8,14 @@
 
 ## [Unreleased]
 
+### Fixed（research skills manifest 契约兼容 - 2026-09-02）
+
+- 修复 `research-literature-review` 与 `research-literature-search` 在同一 Python 进程中加载同名 `query_contract` 时的模块遮蔽；search manifest validator 改用唯一命名的 `rls_contract`，合法 `rls.v1` bundle 可正常验证。search 升至 v1.0.2，review 升至 v1.3.1。
+
+### Fixed（research-literature-search 空记录容错 - 2026-09-02）
+
+- 修复 provider 返回 `null` / 非对象候选时规范化阶段可能崩溃的问题：统一跳过无效条目，继续处理合法候选，并在 manifest / Search Log 中保留 `empty_records`、`invalid_records` 与 warning 审计信息；全部候选无效时返回 `no_valid_candidates`。
+
 ### Changed（research-literature-search 拆分与 review 接口重构 - 2026-09-02）
 
 - 新增 `skills/research-literature-search/`：提供 `run`、`enrich-abstracts`、`validate`，输出 `rls.v1` manifest bundle、canonical 候选、来源追踪和去重映射。

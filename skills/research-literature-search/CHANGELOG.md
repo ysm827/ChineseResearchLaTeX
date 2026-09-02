@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.2] - 2026-09-02
+
+### Fixed
+
+- 将 manifest contract 常量移至唯一命名的 `rls_contract.py`，修复 review runner 进程内导入同名 `query_contract` 导致合法 bundle 无法验证的问题。
+
+## [1.0.1] - 2026-09-02
+
+### Fixed
+
+- provider 返回 `null` 或混入非对象候选时，统一在输入边界跳过无效条目，避免规范化阶段因 `.get()` 崩溃。
+- manifest、Search Log 和 dedupe map 记录跳过的空/非法条目数量；全部候选无效时返回 `no_valid_candidates`。
+- 增加空记录、混合非法记录和全空 provider 结果的回归测试。
+
 ## [1.0.0] - 2026-09-02
 
 ### Added

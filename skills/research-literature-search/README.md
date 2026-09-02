@@ -2,7 +2,9 @@
 
 `research-literature-search` 将“查询输入 → 多源召回 → 规范化 → canonical 去重 → 来源审计”做成可独立复用的证据生产环节。它适合只想先拿候选文献池、为研究选题准备查新材料，或被综述/标书等下游流程消费的场景。
 
-当前版本：`v1.0.0`。
+当前版本：`v1.0.2`。
+
+manifest 校验使用独立命名的 `rls_contract` 模块，避免与 `research-literature-review` 的同名 `query_contract` 在同一 Python 进程中互相遮蔽。
 
 ## 快速开始
 
@@ -41,6 +43,8 @@ python3 skills/research-literature-search/scripts/search_runner.py validate \
 ## 失败与部分成功
 
 输入数量不合法、路径越界、所有 provider 不可用或没有候选时返回 `failed` 和具体 `failure_code`。仍有候选但 provider 失败、宿主 provider 被跳过、字段缺失或总量截断时返回 `partial_success`；所有问题都写入 manifest，不会静默假装完整成功。
+
+provider 返回 `null` 记录或其它非对象条目时，检索器会跳过坏条目、继续处理合法候选，并在 `manifest.json` / `search_log.json` 中记录 `empty_records`、`invalid_records` 和对应 warning。若所有返回条目均无法规范化，则返回 `failed`，`failure_code` 为 `no_valid_candidates`。
 
 ## 依赖
 
