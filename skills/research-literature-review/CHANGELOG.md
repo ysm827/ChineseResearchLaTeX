@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed（拆分 research-literature-search 依赖 - 2026-09-02）
+
+- `research-literature-review` 增加必需依赖 `research-literature-search`（contract `rls.v1`）及显式 `--search-skill-root` resolver。
+- 阶段 1 改由 search 生成 manifest bundle；阶段 2 只校验 canonical 候选与 hash，不再重复执行旧去重实现。
+- 保留 `multi_query_search.py`、`openalex_search.py`、`semantic_scholar_search.py`、`crossref_search.py`、`dedupe_papers.py` 与 `multi_source_abstract.py` 的旧 CLI 兼容 wrapper。
+- 子进程 wrapper 使用 resolver 发现的 search skill 根目录，支持 review/search 独立安装；显式依赖路径无效时不再静默回退。
+
 ### Changed（多查询输入契约与可审计后备 - 2026-09-01）
 
 - 版本提升至 `v1.3.0`；新增 `query_input` 配置，统一查询目录、5–25 条数量边界和默认关闭的单查询后备。

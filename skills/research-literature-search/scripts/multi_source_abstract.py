@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-"""Deprecated abstract enrichment wrapper for research-literature-search."""
+"""Optional, bounded abstract enrichment command."""
 from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
+from typing import Any
 
-SEARCH_ROOT = Path(__file__).resolve().parents[2] / "research-literature-search" / "scripts"
-sys.path.insert(0, str(SEARCH_ROOT))
-from search_runner import enrich_abstracts  # noqa: E402
+from search_runner import enrich_abstracts
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Deprecated abstract enrichment wrapper")
+    parser = argparse.ArgumentParser(description="Enrich selected paper abstracts")
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--topic", default="")

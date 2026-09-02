@@ -4,6 +4,8 @@
 
 当前版本：`v1.3.0`。
 
+检索依赖：`research-literature-search` `rls.v1`（`research-literature-search` v1.0.0+）。review 负责评分、选文、写作与 PDF/Word 导出；阶段 1/2 只消费 search 的 manifest bundle，不再复制 provider 或二次 canonical 去重。独立安装时可用 `--search-skill-root` 指定依赖路径。
+
 ## 旧名兼容
 
 - 当前正式名：`research-literature-review`
@@ -76,6 +78,18 @@
 - `fallback_reason`
 
 因此，“单查询返回很多结果”不会再被误认为多查询成功。
+
+### Search manifest 交接
+
+阶段 1 会在当前 run 的 `output/artifacts/search_bundle_{stem}/` 生成并校验：
+
+```text
+manifest.json
+candidates_raw.jsonl / candidates_normalized.jsonl / candidates_deduped.jsonl
+provenance.jsonl / dedupe_map.json / search_log.json
+```
+
+`manifest.json` 记录 `rls.v1`、候选 schema、查询 SHA-256、provider attempts、截断/失败统计和每个 artifact hash。阶段 2 仅做完整性验证并保留旧 `2_dedupe` checkpoint 名称；缺依赖、契约不兼容、文件删除或 hash 改变时 fail-closed。
 
 ## 字数预算的设计哲学
 

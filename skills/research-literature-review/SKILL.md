@@ -5,6 +5,11 @@ description: 当用户明确要求"做系统综述/文献综述/related work/相
 metadata:
   author: Bensz Conan
   short-description: 相关性评分驱动的系统综述流水线（LaTeX+BibTeX，PDF/Word 强制，支持多语言）
+  dependencies:
+    - skill: research-literature-search
+      required: true
+      contract: rls.v1
+      reason: 阶段 1/2 统一消费版本化 manifest 与 canonical 候选，避免重复 provider/去重实现
   keywords:
     - research-literature-review
     - systematic-literature-review
@@ -46,12 +51,13 @@ metadata:
 - 若 AI 仍可通过 workaround 继续完成用户任务，应先记录 bug，再继续完成当前任务。
 - 当用户明确要求“report bensz skills bugs”等公开上报动作时，调用本地 `gh` 与 `bensz-collect-bugs`，仅上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull / clone 整个 bug 仓库。
 
-## 定位
+## 定位与检索依赖
 
 - 目标：在一个隔离工作目录内完成“检索 → 去重 → 评分 → 选文 → 写作 → 校验 → PDF/Word 导出”的完整综述流水线。
 - 适用：用户明确要系统综述、文献综述、related work、文献调研，并希望得到 LaTeX + BibTeX + PDF/Word 产物。
 - 不适用：只想补单条参考文献、只想润色已有正文、只想写普通摘要或与综述无关的文章。
 - 最高原则：以最佳可用证据和写作质量完成综述；不确定时说明处理方式，不为赶进度牺牲可信度。
+- `research-literature-search` 是阶段 1/2 的必需依赖（contract `rls.v1`）。review 只消费其 manifest、canonical candidates 和 provenance，不再内嵌 provider 或执行第二套 canonical 去重。
 - 旧名 `systematic-literature-review` 仅作为 prompt 兼容别名保留；`.systematic-literature-review/` 仍是稳定历史工作区名。
 
 ## 输入
@@ -112,18 +118,20 @@ metadata:
   - `references/review-tex-section-templates.md`
   - 涉及翻译时再读 `references/multilingual-guide.md`
 
-### 1. 多查询检索
+### 1. 多查询检索（调用 research-literature-search）
 
 - 查询来源优先级固定为：显式 `--query-file` → 当前 run 的 `input/queries.json` → `input/queries_{stem}.json` → `output/artifacts/queries_{stem}.json` → 当前 run 内唯一历史兼容文件。
 - 自动发现多个候选时停止并报告冲突；发现文件但 schema/数量无效时停止并给出修复提示。不得跨 run 猜测查询路径。
-- 优先用 OpenAlex，必要时按 `config.yaml.search.provider_priority` 自动降级。
-- 检索结果写 Search Log；多查询必须标记 `search_mode=multi_query`。state 同时记录查询来源、请求/接受数量和 SHA-256 指纹；resume 时文件缺失或指纹变化必须停止确认。
+- 启动阶段先发现并校验 `research-literature-search`（顺序：`--search-skill-root` → 项目内 `skills/research-literature-search` → 环境变量 → 用户 Skill 根目录）；缺失或 contract 不兼容时 fail-closed，并给出安装提示。
+- 调用 search 的 `run` 入口生成 manifest bundle；review 将其作为只读输入包保存并记录 manifest/candidate hash、contract version 和 source path。
+- Search Log 的 `search_mode/query_source/requested_query_count/accepted_query_count/fallback_reason` 由 manifest 单向生成；AI 不手写 provider 次数、候选数量或去重结论。
 - 单查询只作为显式后备：传 `--allow-single-query-fallback`，可用 `--fallback-reason` 写明原因；日志必须标记 `search_mode=single_query` 和醒目警告。
 
-### 2. 去重
+### 2. 去重（契约验证，不重复去重）
 
-- 用 `dedupe_papers.py` 生成去重结果与映射。
-- 所有后续流程只读取去重后的候选集。
+- 验证 manifest、artifact hash、`rls.paper.v1` 和 `candidates_deduped.jsonl`；保留 `2_dedupe` checkpoint 名称以兼容 resume。
+- 新运行不得再次执行旧 `dedupe_papers.py` 或改变 canonical 顺序；旧文件/旧 checkpoint 仅通过显式 legacy adapter 读取，并标记 `legacy_adapted`。
+- 所有后续流程只读取 search bundle 的 canonical 候选集。
 
 ### 3. AI 评分与数据抽取
 
@@ -180,6 +188,7 @@ metadata:
 - 正式交付目录必须通过 `--publish-dir` 显式指定，并且只接收 PDF/Word（或显式开启的支持性文件）。不要把正式目录作为 `--work-dir`。
 - AI 临时脚本必须放到内部 `output/scripts/`；不要把临时文件写到运行目录根部，不要使用绝对路径写 `/tmp/*`，也不要读写其他 run 目录。
 - 以环境变量 `SYSTEMATIC_LITERATURE_REVIEW_SCOPE_ROOT` 和 `SYSTEMATIC_LITERATURE_REVIEW_SCRIPTS_DIR` 为准。
+- search bundle 位于当前 review run 的 `output/artifacts/search_bundle_{stem}/`，review 只读消费其 manifest 指向的相对路径；不得跨 run 猜测或直接信任外部绝对 artifact 路径。
 
 ## 关键命令
 
@@ -196,6 +205,10 @@ python3 scripts/run_pipeline.py --topic "{主题}" --allow-single-query-fallback
 
 # 旧入口 / resume
 python3 scripts/pipeline_runner.py --topic "{主题}" --domain general --query-file ./queries.json --publish-dir ./review-deliverables
+
+# 显式指定 search Skill（独立安装环境）
+python3 scripts/pipeline_runner.py --topic "{主题}" --query-file ./queries.json \
+  --search-skill-root /path/to/research-literature-search
 python3 scripts/pipeline_runner.py --resume .bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/research-literature-review/{run-id} --publish-dir ./review-deliverables
 
 # 阶段 3 评分后，从第 4 阶段继续

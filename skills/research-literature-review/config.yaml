@@ -7,6 +7,18 @@ skill_info:
   author: "Bensz Conan"
   category: writing
 
+dependencies:
+  required_skills:
+    - name: research-literature-search
+      contract: rls.v1
+      min_version: 1.0.0
+      required: true
+  resolver:
+    explicit_flag: --search-skill-root
+    environment_variables:
+      - RESEARCH_LITERATURE_SEARCH_ROOT
+      - RLS_SEARCH_SKILL_ROOT
+
 # ============================================================================
 # 档位与别名
 # ============================================================================
@@ -338,6 +350,8 @@ scripts:
   convert_latex_to_word: "scripts/convert_latex_to_word.py"
   openalex_search: "scripts/openalex_search.py"
   pipeline_cost: "scripts/pipeline_cost.py"
+  search_runner: "research-literature-search/scripts/search_runner.py"
+  validate_search_bundle: "research-literature-search/scripts/validate_bundle.py"
 
 # ============================================================================
 # 成本追踪配置

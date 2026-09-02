@@ -10,7 +10,8 @@
 
 ```mermaid
 graph LR
-    A[research-topic-extractor<br>提取综述主题] --> B[research-literature-review<br>规范化文献综述]
+    A[research-topic-extractor<br>提取综述主题] --> S[research-literature-search<br>候选文献检索]
+    S --> B[research-literature-review<br>规范化文献综述]
     B --> C[research-guide-updater<br>优化项目指南]
     C --> D[nsfc系列skills<br>标书各部分写作]
     D --> F[nsfc-reviewers<br>专家评审模拟]
@@ -24,6 +25,7 @@ graph LR
 
 **第二步：规范化文献综述**
 - 使用 `research-literature-review` 进行全面、深入的文献调研
+- review 阶段 1/2 强制消费 `research-literature-search` 生成的 `rls.v1` manifest bundle；只想拿候选文献时可单独调用 search
 - 支持多源检索与自动降级（MCP → OpenAlex → Semantic Scholar → Crossref）
 - 生成专家级综述文档（支持 Premium/Standard/Basic 三档）
 - 摘要补齐默认启用，提升文献评估准确性
@@ -297,6 +299,28 @@ output_mode：preview（先预览）/ apply（确认后写入）
 > 💡 **示例**：查看 [examples/](research-literature-review/examples/) 目录，包含本 skill 实际生成的专家级综述示例。
 
 [详细文档 →](research-literature-review/README.md)
+
+---
+
+### 8.5. research-literature-search - 独立文献检索
+
+**状态**：✅ 稳定（v1.0.0）
+
+**类型**：📚 日常
+
+**功能**：校验 5–25 条查询，按 OpenAlex → Semantic Scholar/Crossref 的兼容策略检索，输出 `rls.paper.v1` canonical 候选、provenance、dedupe map 和可验证 `manifest.json`。
+
+**适用场景**：只需要候选论文池、为研究选题/标书准备证据，或被 `research-literature-review` 作为检索生产者调用。
+
+**不负责**：AI 相关性评分、最终选文、综述写作、BibTeX、PDF/Word 导出。
+
+```bash
+python3 research-literature-search/scripts/search_runner.py run \
+  --topic "主题" --query-file ./queries.json --output-dir ./.bensz-api/search-bundle
+python3 research-literature-search/scripts/search_runner.py validate --bundle ./.bensz-api/search-bundle
+```
+
+[详细文档 →](research-literature-search/README.md)
 
 ---
 
@@ -745,7 +769,8 @@ output_mode：preview（先预览）/ apply（确认后写入）
 ### 工作流中的技能协作
 
 - **research-topic-extractor**：前置步骤，提取主题关键词
-- **research-literature-review**：核心文献综述（可选依赖 research-topic-extractor 的输出）
+- **research-literature-search**：检索生产者，输出 `rls.v1` manifest/canonical 候选交接包
+- **research-literature-review**：核心文献综述（必需依赖 research-literature-search；可选依赖 research-topic-extractor 的输出）
 - **research-guide-updater**：中间优化，基于综述结果沉淀写作规范（依赖 research-literature-review 的输出）
 - **nsfc系列写作skills**：最终撰写标书各模块（可选依赖 research-guide-updater 优化的指南）
 - **nsfc-budget**：基于完整正文与补充材料生成预算说明书（通常放在正文接近完成后）
@@ -763,16 +788,17 @@ output_mode：preview（先预览）/ apply（确认后写入）
 对于 NSFC 标书写作，建议按以下顺序使用技能：
 
 1. **research-topic-extractor** → 提取综述主题
-2. **research-literature-review** → 生成文献综述
-3. **research-guide-updater** → 优化项目指南（⭐ 重要环节）
-4. **nsfc-code** → 推荐申请代码（主/次代码 + 理由）
-5. **nsfc-justification-writer** → 撰写立项依据
-6. **nsfc-research-content-writer** → 撰写研究内容
-7. **nsfc-research-foundation-writer** → 撰写研究基础
-8. **nsfc-length-aligner** → 对齐整体篇幅与章节分布
-9. **nsfc-humanization** → 去掉明显机器味，做表达层精修
-10. **nsfc-qc** → 做只读质量控制，集中排查问题
-11. **nsfc-reviewers** → 模拟专家评审，发现问题并迭代优化
+2. **research-literature-search** → 生成可审计候选文献池
+3. **research-literature-review** → 消费 manifest 并生成文献综述
+4. **research-guide-updater** → 优化项目指南（⭐ 重要环节）
+5. **nsfc-code** → 推荐申请代码（主/次代码 + 理由）
+6. **nsfc-justification-writer** → 撰写立项依据
+7. **nsfc-research-content-writer** → 撰写研究内容
+8. **nsfc-research-foundation-writer** → 撰写研究基础
+9. **nsfc-length-aligner** → 对齐整体篇幅与章节分布
+10. **nsfc-humanization** → 去掉明显机器味，做表达层精修
+11. **nsfc-qc** → 做只读质量控制，集中排查问题
+12. **nsfc-reviewers** → 模拟专家评审，发现问题并迭代优化
 
 对于 SCI 论文写作，建议按以下顺序使用技能：
 

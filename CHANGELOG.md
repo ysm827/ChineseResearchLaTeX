@@ -8,6 +8,14 @@
 
 ## [Unreleased]
 
+### Changed（research-literature-search 拆分与 review 接口重构 - 2026-09-02）
+
+- 新增 `skills/research-literature-search/`：提供 `run`、`enrich-abstracts`、`validate`，输出 `rls.v1` manifest bundle、canonical 候选、来源追踪和去重映射。
+- `research-literature-review` 增加必需 search 依赖与 resolver；阶段 1 调用新生产者，阶段 2 改为 manifest/schema/hash 验证 no-op。
+- 保留旧检索、去重和摘要入口为 deprecated wrapper，兼容原有 CLI、文件名与 checkpoint/resume。
+- 根 README、skills README、依赖图和安装说明同步新增独立检索 Skill。
+- 补齐 search bundle 的 path/hash/provider 错误门禁、过滤参数与跨 provider identifier 合并，修复摘要补全成功状态的误报警告，并支持独立安装时由 resolver 注入 wrapper 路径。
+
 ### Changed（变更）
 
 - `research-literature-review` 升级到 `v1.3.0`：建立显式多查询 JSON 契约和统一 stem，阶段 1 默认 fail-closed；新增可审计的单查询后备、查询指纹 resume 校验、Search Log 字段与离线回归测试。

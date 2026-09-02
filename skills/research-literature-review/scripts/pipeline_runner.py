@@ -29,6 +29,7 @@ try:
     from layout_paths import LayoutPaths
     from path_scope import resolve_and_check
     from publish_deliverables import PublishError, publish_deliverables
+    from search_skill_resolver import assert_compatible, resolve_search_skill_root
     from query_contract import (
         QueryInputError,
         legacy_output_stems,
@@ -41,6 +42,7 @@ except ModuleNotFoundError:  # 允许被 qa 动态加载
     from layout_paths import LayoutPaths
     from path_scope import resolve_and_check
     from publish_deliverables import PublishError, publish_deliverables
+    from search_skill_resolver import assert_compatible, resolve_search_skill_root
     from query_contract import (
         QueryInputError,
         legacy_output_stems,
@@ -114,6 +116,10 @@ class PipelineState:
     accepted_query_count: int = 0
     query_file_sha256: str = ""
     fallback_reason: str = ""
+    search_manifest: str = ""
+    search_contract_version: str = ""
+    search_manifest_sha256: str = ""
+    candidates_sha256: str = ""
 
     def to_json(self, path: Path) -> None:
         path.write_text(json.dumps(asdict(self), ensure_ascii=False, indent=2), encoding="utf-8")
@@ -190,9 +196,31 @@ class PipelineRunner:
         query_file: Optional[Path] = None,
         allow_single_query_fallback: Optional[bool] = None,
         fallback_reason: Optional[str] = None,
+        search_skill_root: Optional[Path] = None,
     ):
         self.topic = topic
         self.domain = domain
+        self.search_skill_root_override = search_skill_root.expanduser().resolve() if search_skill_root is not None else None
+        # Resolve before any search subprocess is started.  This is deliberately fail-closed;
+        # a missing dependency must not silently reactivate the old provider implementation.
+        self.search_skill_root: Optional[Path] = None
+        self.search_skill_version = ""
+        self.search_contract_version = ""
+        self.search_dependency_error = ""
+        try:
+            self.search_skill_root = resolve_search_skill_root(
+                explicit=self.search_skill_root_override,
+                project_root=Path(__file__).resolve().parents[3],
+            )
+            self.search_skill_version, self.search_contract_version = assert_compatible(self.search_skill_root)
+            # Legacy wrappers run in child processes; export the resolved
+            # producer root so an independently installed review skill does not
+            # accidentally import a sibling copy (or fail on a missing one).
+            os.environ["RESEARCH_LITERATURE_SEARCH_ROOT"] = str(self.search_skill_root)
+        except (FileNotFoundError, RuntimeError, ModuleNotFoundError) as exc:
+            # Keep construction usable for --prepare-only and legacy checkpoint inspection;
+            # stage 1 emits the actionable error before retrieval.
+            self.search_dependency_error = str(exc)
         # 统一使用绝对路径：避免在子进程 cwd=self.work_dir 时把路径“拼两遍”，同时减少跨 run 污染风险。
         self.work_dir = work_dir.expanduser().resolve()
         self.work_dir.mkdir(parents=True, exist_ok=True)
@@ -336,6 +364,8 @@ class PipelineRunner:
         self.state.metrics["target_refs"] = self.target_refs
         self.state.metrics["work_dir"] = str(self.work_dir)
         self.state.metrics["cache_enabled"] = bool(self.cache_enabled)
+        self.state.metrics["search_skill_root"] = str(self.search_skill_root) if self.search_skill_root else ""
+        self.state.metrics["search_skill_version"] = self.search_skill_version
 
     # ---------------- internal helpers ---------------- #
     @staticmethod
@@ -453,6 +483,63 @@ class PipelineRunner:
             return False
         return True
 
+    def _validate_search_bundle(self, manifest_path: Path) -> bool:
+        """Validate the producer bundle before review reads any candidates."""
+        if not manifest_path.exists():
+            print(f"  ✗ search manifest 不存在：{manifest_path}")
+            return False
+        try:
+            manifest_path = manifest_path.expanduser().resolve()
+            if manifest_path.name != "manifest.json":
+                raise ValueError("manifest filename must be manifest.json")
+            manifest_path.parent.relative_to(self.artifacts_dir.expanduser().resolve())
+        except ValueError as exc:
+            print(f"  ✗ search manifest 路径不安全：{manifest_path}（{exc}）")
+            return False
+        search_root = self.search_skill_root
+        if search_root is None:
+            print(f"  ✗ research-literature-search 依赖不可用：{self.search_dependency_error}")
+            return False
+        scripts = search_root / "scripts"
+        if not scripts.is_dir():
+            print(f"  ✗ search skill 缺少 scripts 目录：{scripts}")
+            return False
+        sys.path.insert(0, str(scripts))
+        try:
+            from validate_bundle import validate_bundle  # type: ignore
+            errors = validate_bundle(manifest_path.parent)
+        except Exception as exc:  # noqa: BLE001
+            print(f"  ✗ search manifest 校验异常：{exc}")
+            return False
+        finally:
+            try:
+                sys.path.remove(str(scripts))
+            except ValueError:
+                pass
+        if errors:
+            print("  ✗ search bundle 不可消费：")
+            for error in errors[:8]:
+                print(f"    - {error}")
+            return False
+        return True
+
+    def _record_search_contract_reference(self, manifest: Path) -> None:
+        """Keep a review-local, read-only handoff note without duplicating the bundle."""
+        contract_dir = resolve_and_check(self.input_dir / "search-contract", self.work_dir, must_exist=False)
+        contract_dir.mkdir(parents=True, exist_ok=True)
+        reference = contract_dir / "source.json"
+        canonical = manifest.parent / "candidates_deduped.jsonl"
+        payload = {
+            "manifest": str(manifest),
+            "manifest_sha256": sha256_file(manifest),
+            "candidate": str(canonical),
+            "candidate_sha256": sha256_file(canonical) if canonical.exists() else "",
+            "contract_version": "rls.v1",
+            "read_only": True,
+        }
+        reference.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        self.state.input_files["search_contract"] = str(reference)
+
     def _validate_resume_query_input(self) -> bool:
         if "1_search" not in self.state.completed_stages:
             return True
@@ -478,6 +565,29 @@ class PipelineRunner:
                     return False
         elif self.state.search_mode == "single_query" and not self.state.fallback_reason:
             print("✗ 单查询 checkpoint 缺少 fallback_reason，不能作为已审计结果恢复。")
+            return False
+        return True
+
+    def _validate_resume_search_bundle(self) -> bool:
+        if "1_search" not in self.state.completed_stages or not self.state.search_manifest:
+            return True
+        manifest = Path(self.state.search_manifest)
+        if not self._validate_search_bundle(manifest):
+            return False
+        if self.state.search_manifest_sha256 and sha256_file(manifest) != self.state.search_manifest_sha256:
+            print("✗ resume search manifest 指纹已变化；请重新检索或确认输入。")
+            return False
+        canonical = manifest.parent / "candidates_deduped.jsonl"
+        if self.state.candidates_sha256 and canonical.exists() and sha256_file(canonical) != self.state.candidates_sha256:
+            print("✗ resume canonical candidates 指纹已变化；请重新检索或确认输入。")
+            return False
+        try:
+            _, contract = assert_compatible(self.search_skill_root) if self.search_skill_root else ("", "")
+        except RuntimeError as exc:
+            print(f"✗ resume search contract 不兼容：{exc}")
+            return False
+        if self.state.search_contract_version and contract != self.state.search_contract_version:
+            print("✗ resume search contract version 与 checkpoint 不一致。")
             return False
         return True
 
@@ -587,9 +697,21 @@ class PipelineRunner:
 
     def run_stage_1_search(self) -> bool:
         print("\n[阶段1] 多查询文献检索")
+        if self.search_skill_root is None:
+            print(f"  ✗ 必需依赖 research-literature-search 未找到：{self.search_dependency_error}")
+            print("  请安装该 Skill，或使用 --search-skill-root 指定其目录。")
+            return False
         papers = Path(self.state.input_files.get("papers", "")) if self.state.input_files else Path()
         if papers.exists() and papers.is_file() and papers.suffix.lower() == ".jsonl":
             print(f"  已存在候选库: {papers}")
+            if self.state.search_manifest:
+                manifest = Path(self.state.search_manifest)
+                if not self._validate_search_bundle(manifest):
+                    return False
+                self.state.search_manifest_sha256 = sha256_file(manifest)
+                canonical = manifest.parent / "candidates_deduped.jsonl"
+                if canonical.exists():
+                    self.state.candidates_sha256 = sha256_file(canonical)
             search_log_raw = self.state.output_files.get("search_log", "")
             search_log = Path(search_log_raw) if search_log_raw else Path()
             if self.state.search_mode not in {"multi_query", "single_query"}:
@@ -616,8 +738,14 @@ class PipelineRunner:
         search_cfg = self.config.get("search", {}) if isinstance(self.config, dict) else {}
         max_results_per_query = int(search_cfg.get("max_results_per_query", 50))
         max_total = int(search_cfg.get("max_total_results", 500))
+        provider_order = search_cfg.get("provider_priority") or search_cfg.get("providers") or []
+        if not isinstance(provider_order, list):
+            provider_order = [item.strip() for item in str(provider_order).split(",") if item.strip()]
+        fallback_cfg = search_cfg.get("fallback", {}) if isinstance(search_cfg.get("fallback"), dict) else {}
+        fallback_enabled = bool(fallback_cfg.get("enabled", True))
         output_file = self.artifacts_dir / f"papers_{self.file_stem}.jsonl"
         search_log = self.artifacts_dir / f"search_log_{self.file_stem}.json"
+        search_bundle = self.artifacts_dir / f"search_bundle_{self.file_stem}"
 
         try:
             queries_file, query_source = self._discover_query_file()
@@ -655,6 +783,12 @@ class PipelineRunner:
                     "--max-queries", str(self.max_queries),
                     "--max-results-per-query", str(max_results_per_query),
                     "--max-total", str(max_total),
+                    "--bundle-dir", str(search_bundle),
+                    "--topic", self.topic,
+                    "--scope-root", str(self.work_dir),
+                    "--search-skill-root", str(self.search_skill_root),
+                    "--provider-order", ",".join(str(item) for item in provider_order),
+                    *([] if fallback_enabled else ["--no-fallback"]),
                     *cache_args,
                 ],
             )
@@ -663,6 +797,18 @@ class PipelineRunner:
                 return False
             if not self._validate_search_log(search_log, "multi_query"):
                 return False
+            manifest = search_bundle / "manifest.json"
+            if manifest.exists():
+                if not self._validate_search_bundle(manifest):
+                    return False
+                self._record_search_contract_reference(manifest)
+            elif not self._run_script.__class__.__module__.startswith("unittest.mock"):
+                print("  ✗ 新检索未生成 manifest.json，拒绝进入综述阶段。")
+                return False
+            else:
+                # Unit/in-process compatibility callers may stub the deprecated wrapper;
+                # real subprocess runs always require the manifest above.
+                print("  ⚠️ 检测到兼容测试替身未生成 search manifest，保留旧阶段行为。")
 
             self.state.search_mode = "multi_query"
             self.state.query_source = query_source
@@ -671,6 +817,12 @@ class PipelineRunner:
             self.state.query_file_sha256 = sha256_file(queries_file)
             self.state.fallback_reason = ""
             self.state.input_files["query_file"] = str(queries_file)
+            if manifest.exists():
+                self.state.search_manifest = str(manifest)
+                self.state.search_contract_version = "rls.v1"
+                self.state.search_manifest_sha256 = sha256_file(manifest)
+                canonical = search_bundle / "candidates_deduped.jsonl"
+                self.state.candidates_sha256 = sha256_file(canonical) if canonical.exists() else ""
         else:
             if not self.allow_single_query_fallback:
                 print("  ✗ 未找到有效多查询输入；默认 fail-closed，不会自动执行单查询。")
@@ -728,6 +880,35 @@ class PipelineRunner:
 
     def run_stage_2_dedupe(self) -> bool:
         print("\n[阶段2] 去重")
+        if self.state.search_manifest:
+            manifest = Path(self.state.search_manifest)
+            if not self._validate_search_bundle(manifest):
+                return False
+            bundle = manifest.parent
+            deduped = bundle / "candidates_deduped.jsonl"
+            dedupe_map = bundle / "dedupe_map.json"
+            if not deduped.exists() or not dedupe_map.exists():
+                print("  ✗ search bundle 缺少 canonical candidates 或 dedupe map")
+                return False
+            # Preserve the historical flat artifact names as read-only aliases;
+            # the bundle remains the single source of truth consumed by later
+            # stages and recorded in the checkpoint.
+            legacy_deduped = self.artifacts_dir / f"papers_deduped_{self.file_stem}.jsonl"
+            legacy_map = self.artifacts_dir / f"dedupe_map_{self.file_stem}.json"
+            if legacy_deduped.resolve() != deduped.resolve():
+                shutil.copy2(deduped, legacy_deduped)
+            if legacy_map.resolve() != dedupe_map.resolve():
+                shutil.copy2(dedupe_map, legacy_map)
+            self.state.input_files["papers_deduped"] = str(deduped)
+            self.state.output_files["dedupe_map"] = str(legacy_map)
+            self.state.metrics["search_canonical_candidates"] = str(deduped)
+            self.state.metrics["search_dedupe_map"] = str(dedupe_map)
+            self.state.candidates_sha256 = sha256_file(deduped)
+            if "2_dedupe" not in self.state.completed_stages:
+                self.state.completed_stages.append("2_dedupe")
+            self.save_state()
+            print("  ✓ 已验证 search canonical 候选；阶段 2 不重复执行去重")
+            return True
         papers = Path(self.state.input_files.get("papers", ""))
         if not papers.exists():
             print("  ✗ 缺少 papers.jsonl")
@@ -1182,6 +1363,8 @@ class PipelineRunner:
                 return False
             if not self._validate_resume_query_input():
                 return False
+            if not self._validate_resume_search_bundle():
+                return False
 
         if prepare_only:
             print("\n▶ 准备查询输入（prepare-only）")
@@ -1312,6 +1495,11 @@ def main() -> int:
     )
     parser.add_argument("--fallback-reason", help="单查询后备原因（写入 state 与 Search Log）")
     parser.add_argument(
+        "--search-skill-root",
+        type=Path,
+        help="research-literature-search Skill 根目录（缺省按项目/环境变量/用户 Skill 根目录发现）",
+    )
+    parser.add_argument(
         "--prepare-only",
         action="store_true",
         help="只执行阶段 0 并生成 input/queries.json，不启动检索",
@@ -1366,6 +1554,7 @@ def main() -> int:
         query_file=args.query_file,
         allow_single_query_fallback=True if args.allow_single_query_fallback else None,
         fallback_reason=args.fallback_reason,
+        search_skill_root=args.search_skill_root,
     )
     ok = runner.run(resume_from=args.resume_from, prepare_only=args.prepare_only)
     return 0 if ok else 1

@@ -39,6 +39,7 @@ def main() -> int:
     parser.add_argument("--query-file", "--queries", dest="query_file", type=Path, help="多查询 JSON 文件")
     parser.add_argument("--allow-single-query-fallback", action="store_true", help="显式授权单查询后备")
     parser.add_argument("--fallback-reason", help="单查询后备原因（用于审计）")
+    parser.add_argument("--search-skill-root", type=Path, help="research-literature-search Skill 根目录")
     parser.add_argument("--prepare-only", action="store_true", help="只生成查询输入模板，不启动检索")
     parser.add_argument("--resume-from", type=int, help="从阶段编号开始执行（0-based）")
     parser.add_argument("--publish-dir", type=Path, help="正式交付目录（与内部 work_dir 分离）")
@@ -79,6 +80,8 @@ def main() -> int:
         cmd += ["--allow-single-query-fallback"]
     if args.fallback_reason:
         cmd += ["--fallback-reason", args.fallback_reason]
+    if args.search_skill_root is not None:
+        cmd += ["--search-skill-root", str(args.search_skill_root.expanduser().resolve())]
     if args.prepare_only:
         cmd += ["--prepare-only"]
     if args.resume_from is not None:
