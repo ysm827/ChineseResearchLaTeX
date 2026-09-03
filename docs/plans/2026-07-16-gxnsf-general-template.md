@@ -4,11 +4,11 @@
 
 **Goal:** 新增可独立构建、可发布、可在 Overleaf 使用的广西自然科学基金面上项目报告正文模板，并严格以 issue #52 提供的精简 DOCX 为版式与正文提纲基线。
 
-**Architecture:** 新建项目层独立模板 `projects/GXNSF_General/`，宏与构建入口统一使用 `GXNSF` 前缀，仅复用 `packages/bensz-fonts/` 的字体资源，不接入或修改 `packages/bensz-nsfc/`。同时让 VS Code 同步、README 自动模板列表和 Release/Overleaf 打包显式识别该项目，并用 TDD 与既有 GDNSF/NSFC 回归证明隔离性。
+**Architecture:** 新建项目层独立模板 `projects/GXNSF_General/`，宏与构建入口统一使用 `GXNSF` 前缀；字体、字号、页边距和官方提纲仍由项目层隔离维护，正文标题仅复用 `packages/bensz-nsfc/bensz-nsfc-headings.sty` 这一无状态公共模块，不接入完整 `bensz-nsfc-common`。同时让 VS Code 同步、README 自动模板列表和 Release/Overleaf 打包显式识别该项目，并用 TDD 与既有 GDNSF/NSFC 回归证明隔离性。
 
 **Tech Stack:** XeLaTeX、ctex/xeCJK/fontspec、Python 3、pytest、LibreOffice/Pandoc/Poppler、现有 Release 与 VS Code 同步脚本。
 
-**Minimal Change Scope:** 允许新增 `projects/GXNSF_General/`、GXNSF 专属测试与 VS Code 模板，并修改 `scripts/sync_vscode_configs.py`、`scripts/update_readme_template_list.py`、`scripts/pack_release.py`、`scripts/vscode/README.md`、`README.md`、`projects/README.md`、`CHANGELOG.md`；禁止修改 `packages/bensz-nsfc/`、`packages/bensz-fonts/`、`projects/NSFC_*` 与 `projects/GDNSF_General/`。
+**Minimal Change Scope:** 允许新增 `projects/GXNSF_General/`、GXNSF 专属测试与 VS Code 模板，并修改 `scripts/sync_vscode_configs.py`、`scripts/update_readme_template_list.py`、`scripts/pack_release.py`、`scripts/vscode/README.md`、`README.md`、`projects/README.md`、`CHANGELOG.md`；GXNSF 仅读取 `packages/bensz-nsfc/bensz-nsfc-headings.sty`，不修改公共包源码；禁止修改 `packages/bensz-fonts/`、`projects/NSFC_*` 与 `projects/GDNSF_General/`。
 
 **Success Criteria:** 提纲文本、顺序、局部字重、A4 页面、3.175 cm 左右边距、2.54 cm 上下边距、16 pt 字号、28.3 pt 固定行距和两字符首行缩进与 DOCX 一致；项目 wrapper、VS Code、标准 zip、Overleaf zip 均可用；相关自动化测试通过；GDNSF 与三套 NSFC 构建无回归；受保护路径 diff 为空。
 
@@ -89,4 +89,3 @@
 2. 在空 TEXMFHOME 的解包目录中构建 Overleaf 包，证明字体与入口自包含。
 3. 回归构建 GDNSF 与三套 NSFC，并运行相关 pytest、VS Code check、包结构校验。
 4. 审查 diff，修复所有 Critical/Important 问题并重跑受影响验证。
-

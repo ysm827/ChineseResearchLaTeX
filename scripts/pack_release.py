@@ -590,10 +590,15 @@ def build_nsfc_runtime_bundle(runtime_dir: Path, project_dir: Path) -> None:
 def build_provincial_nsfc_runtime_bundle(runtime_dir: Path, project_dir: Path) -> None:
     """构建省级自然科学基金独立项目的 Overleaf 运行时 bundle。
 
-    GDNSF/GXNSF 都是项目层独立模板，只注入 ``bensz-fonts`` 入口和实际字体，
-    不携带或依赖 ``bensz-nsfc`` 运行时。
+    GDNSF 保持项目层独立，仅注入 ``bensz-fonts`` 入口和实际字体；GXNSF
+    额外复用公共标题模块，因此将该单文件标题实现一并注入。
     """
     copy_fonts_runtime_bundle(runtime_dir, select_overleaf_font_files(project_dir))
+    if project_dir.name.startswith("GXNSF_"):
+        copy_file(
+            NSFC_PACKAGE_DIR / "bensz-nsfc-headings.sty",
+            runtime_dir / "bensz-nsfc-headings.sty",
+        )
 
 
 def build_gdnsf_runtime_bundle(runtime_dir: Path, project_dir: Path) -> None:

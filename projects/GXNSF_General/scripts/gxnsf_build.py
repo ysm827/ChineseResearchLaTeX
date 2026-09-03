@@ -18,6 +18,7 @@ def _texinputs(project_dir: Path) -> str:
         project_dir,
         REPO_ROOT / "packages" / "bensz-fonts",
         REPO_ROOT / "packages" / "bensz-fonts" / "fonts",
+        REPO_ROOT / "packages" / "bensz-nsfc",
     ]
     existing = [str(path.resolve()) for path in candidates if path.exists()]
     return os.pathsep.join([*existing, ""])
