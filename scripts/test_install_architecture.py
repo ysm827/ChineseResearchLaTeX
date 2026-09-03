@@ -456,7 +456,7 @@ def test_pack_gxnsf_standard_project_keeps_development_files(tmp_path: Path):
     assert not any(".latex-cache" in name or name.endswith(".pyc") or name.endswith(".DS_Store") for name in names)
 
 
-def test_pack_gxnsf_overleaf_is_self_contained_without_nsfc_runtime(tmp_path: Path):
+def test_pack_gxnsf_overleaf_is_self_contained_with_shared_headings_runtime(tmp_path: Path):
     project_dir = REPO_ROOT / "projects" / "GXNSF_General"
 
     zip_path = pack_release.pack_project_overleaf(project_dir, tmp_path, "v-test")
@@ -468,6 +468,7 @@ def test_pack_gxnsf_overleaf_is_self_contained_without_nsfc_runtime(tmp_path: Pa
         "main.tex",
         "README.md",
         "styles/bensz-fonts.sty",
+        "styles/bensz-nsfc-headings.sty",
         "styles/fonts/AdobeFangsongStd-Regular.otf",
         "styles/fonts/FZFangSong-Z02.ttf",
         "styles/fonts/FZKai-Z03.ttf",
@@ -475,7 +476,7 @@ def test_pack_gxnsf_overleaf_is_self_contained_without_nsfc_runtime(tmp_path: Pa
         "styles/fonts/TimesNewRoman.ttf",
     } <= names
     assert any(name.startswith("extraTex/") and name.endswith(".tex") for name in names)
-    assert not any(name.startswith("styles/bensz-nsfc") for name in names)
+    assert "styles/bensz-nsfc-headings.sty" in names
     assert "main.pdf" not in names
     assert not any(name.startswith("template/") for name in names)
     assert not any(name.startswith("scripts/") for name in names)

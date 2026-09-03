@@ -4,7 +4,7 @@
 
 ```
 github项目：huangwb8/ChineseResearchLaTeX
-version=4.0.20
+version=4.1.0
 git-commit skill保存变更; 最后一个commit要新增 tag 为 v{version}，并且该commit信息要提到更新版本（写commit信息的时候，不能仅根据最近1次commit； 而是版本间所有commit的总结的综合形成版本特异性commit信息）； git-publish-release skill 发布为一个release到github仓库。项目zip文件记得同步生成。
 ```
 
@@ -43,6 +43,10 @@ git-commit skill保存变更; 最后一个commit要新增 tag 为 v{version}，�
   - 笔记里那些重要的相关文章你肯定要包含； 要有专门的章节来呈现之前那个科研网络拓扑
 
 这是一次比较大的、比较复杂的改动。 允许你通过多agent协作开发，让这2个skill可以充分配合，从而模拟顶级人类科学家的思考idea的一般模式。哪些步骤应该开多agent、开几个agent、具体如何控制agent的行为，你要好好设计。您先写个源代码优化计划，不要改任何源代码。 
+
+---
+
+正文那里的标题层级，我还是喜欢类似 projects/NSFC_Young 这个示例里一样。 因为标书一般只规定模板文字，一般正文是没有什么特别的要求的。 我希望正文里的标题层级样式、颜色等与 projects/NSFC_Young 这个示例一样。当然，要尽量在 packages 的框架下进行，不要重复造轮子。 
 
 ---
 

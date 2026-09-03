@@ -250,13 +250,13 @@ AI 会自动联网访问项目文档了解安装方式并完成安装。小白�
 
 项目内置多个符合 [我预定义规范](https://github.com/huangwb8/skills) 的强大 Skills，辅助 LaTeX 写作和模板优化。**兼容 Claude Code、OpenAI Codex、Cursor、GitHub Actions、VS Code！** 通过灵活运用 skills，加上多轮对话进行优化，才能保证最佳效果。**详细使用说明和 Prompt 模板**：[skills/README.md](skills/README.md)
 
-在 **Claude Code** 或 **OpenAI Codex** 中输入以下 Prompt，AI 会自动拉取官方一键脚本完成安装与更新：
+在 **Claude Code** 或 **OpenAI Codex** 中输入以下 Prompt，AI 会自动调用官方安装器完成安装与更新：
 
 ```
-安装/更新 huangwb8/skills 的 bensz skills 到最新版
+使用 install-bensz-skills skill 将 bensz skills 安装/更新到最新版（系统级）
 ```
 
-> 💡 需要一键 `curl | bash` / `irm | iex`、本地 `git clone` 或远程对话式安装等手动命令？见 [手动配置指南](docs/manual-setup-guide.md#skills-安装与更新)。
+> 💡 需要单行 Python 引导安装、本地 `git clone` 安装或远程安装模式等手动命令？见 [手动配置指南](docs/manual-setup-guide.md#skills-安装与更新)。
 
 
 本项目提供多个 AI 技能，覆盖文献调研、模板迁移、标书写作与模板开发等协作场景。
@@ -265,35 +265,38 @@ AI 会自动联网访问项目文档了解安装方式并完成安装。小白�
 - 新任务、新文档和新脚本请统一使用当前名称；旧名称只作为存量 Prompt 的兼容入口
 - `make-latex-model` 取代旧写法 `make_latex_model`
 - `transfer-old-latex-to-new` 取代历史别名 `migrating-latex-templates`
-- 下表版本号为当前仓库内各 `skills/*/config.yaml` 的同步快照；若后续单个 skill 独立升级，以对应 `config.yaml` 与该 skill 自身 `README.md` 为准
+- 下表由 `scripts/update_readme_skill_list.py` 自动生成，版本号同步自各 `skills/*/config.yaml`；新增或升级 skill 后运行该脚本即可刷新，请勿手动编辑表格
 
+<!-- SKILL-LIST:START -->
+<!-- 由 scripts/update_readme_skill_list.py 自动生成，请勿手动编辑。 -->
 | 技能 | 阶段 | 版本 | 功能 | 状态 |
 |------|------|------|------|------|
 | [make-latex-model](skills/make-latex-model/) | 🔧 模板开发 | v3.1.2 | 面向 ChineseResearchLaTeX 全仓库的模板落地与高保真对齐 | ✅ 稳定 |
 | [complete-example](skills/complete-example/) | 🔧 模板开发 | v1.4.1 | 智能示例生成和补全 | ✅ 稳定 |
-| [transfer-old-latex-to-new](skills/transfer-old-latex-to-new/) | 🔧 模板开发  | v2.1.0 | 模板迁移与重构编排，支持任意输入并由 AI 自主决定输出 | ✅ 稳定 |
+| [transfer-old-latex-to-new](skills/transfer-old-latex-to-new/) | 🔧 模板开发 | v2.1.0 | 模板迁移与重构编排，支持任意输入并由 AI 自主决定输出 | ✅ 稳定 |
 | [research-literature-search](skills/research-literature-search/) | 📚 文献调研 | v1.0.2 | 独立多源文献检索、规范化、canonical 去重与 manifest 审计包 | ✅ 稳定 |
 | [research-literature-review](skills/research-literature-review/) | 📚 文献调研 | v1.3.1 | 消费 search manifest 的显式多查询、可审计专家级综述 | ✅ 稳定 |
 | [research-citation-check](skills/research-citation-check/) | 📚 文献调研 | v1.1.0 | 综述引用语义一致性检查 | ✅ 稳定 |
 | [research-topic-extractor](skills/research-topic-extractor/) | 📚 文献调研 | v1.1.0 | 结构化综述主题提取 | ✅ 稳定 |
 | [research-guide-updater](skills/research-guide-updater/) | 📚 文献调研 | v1.1.0 | 项目指南优化与写作规范沉淀 | ✅ 稳定 |
 | [research-plan](skills/research-plan/) | 📚 文献调研 | v0.2.0 | 文献驱动的科研分析策略规划 | 🚧 开发中 |
-| [research-idea](skills/research-idea/) | 📚 文献调研 | v0.2.0 | 基于查新与多轮独立审查提出科学问题和可证伪假设 | 🚧 开发中 |
+| [research-idea](skills/research-idea/) | 📚 文献调研 | v0.2.1 | 基于查新与多轮独立审查提出科学问题和可证伪假设 | 🚧 开发中 |
 | [nsfc-code](skills/nsfc-code/) | ✍️ 标书写作 | v1.0.0 | NSFC 申请代码推荐（5 组 code1/code2 + 理由，只读） | ✅ 稳定 |
 | [nsfc-abstract](skills/nsfc-abstract/) | ✍️ 标书写作 | v2.1.2 | 标题建议 + NSFC 中英文摘要生成（中文≤400字；英文≤4000字符） | ✅ 稳定 |
 | [nsfc-budget](skills/nsfc-budget/) | ✍️ 标书写作 | v0.1.2 | NSFC 预算说明书生成（LaTeX 项目 + `budget.pdf`） | 🚧 开发中 |
 | [nsfc-justification-writer](skills/nsfc-justification-writer/) | ✍️ 标书写作 | v1.3.0 | 全自动立项依据语义写作、专业可读性复核与可逆写入 | ✅ 稳定 |
 | [nsfc-research-content-writer](skills/nsfc-research-content-writer/) | ✍️ 标书写作 | v1.0.0 | NSFC 研究内容编排写作 | ✅ 稳定 |
 | [nsfc-research-foundation-writer](skills/nsfc-research-foundation-writer/) | ✍️ 标书写作 | v0.1.2 | NSFC 研究基础编排写作 | 🚧 开发中 |
-| [nsfc-qc](skills/nsfc-qc/) | ✍️ 标书写作 | v1.2.0 | NSFC 标书只读质量控制（多线程检查文风/引用/篇幅/逻辑 + 全文级缩写注册表 QC） | ✅ 稳定 |
+| [nsfc-qc](skills/nsfc-qc/) | ✍️ 标书写作 | v1.2.1 | NSFC 标书只读质量控制（多线程检查文风/引用/篇幅/逻辑 + 全文级缩写注册表 QC） | ✅ 稳定 |
 | [nsfc-ref-alignment](skills/nsfc-ref-alignment/) | ✍️ 标书写作 | v0.1.1 | NSFC 参考文献与正文引用一致性核查（只读） | 🚧 开发中 |
-| [nsfc-reviewers](skills/nsfc-reviewers/) | ✍️ 标书写作 | v1.4.0 | NSFC 标书多专家多维度评审模拟（默认 3 组、最多 5 组，含函评/会评给不过判断与资助约束识别） | ✅ 稳定 |
+| [nsfc-reviewers](skills/nsfc-reviewers/) | ✍️ 标书写作 | v1.4.1 | NSFC 标书多专家多维度评审模拟（默认 3 组、最多 5 组，含函评/会评给不过判断与资助约束识别） | ✅ 稳定 |
 | [nsfc-length-aligner](skills/nsfc-length-aligner/) | ✍️ 标书写作 | v0.3.1 | NSFC 标书篇幅对齐（检查差距 → 扩写/压缩到达标） | 🚧 开发中 |
 | [nsfc-humanization](skills/nsfc-humanization/) | ✍️ 标书写作 | v1.2.0 | 分词语/句法/段落/章节四层去 AI 机器味，识别工程协议腔、术语漂移并审计安全不变量 | ✅ 稳定 |
 | [paper-write-sci](skills/paper-write-sci/) | 📝 SCI 论文 | v0.11.2 | SCI 期刊论文写作与修订（风格化写作、数字审查、逻辑审查、写作节奏护栏、PDF/Word 渲染闭环） | 🚧 开发中 |
 | [paper-explain-figures](skills/paper-explain-figures/) | 📝 SCI 论文 | v0.2.0 | 解读论文 Figure 含义，生成高可读性 Markdown 报告（视觉理解 + 源代码检索 + 人工解读） | 🚧 开发中 |
 | [paper-select-journal](skills/paper-select-journal/) | 📝 SCI 论文 | v0.3.1 | SCI 投稿期刊筛选（稿件画像 + 期刊核验 + 近 3 个月相似论文证据） | 🚧 开发中 |
 | [paper-know-journal](skills/paper-know-journal/) | 📝 SCI 论文 | v0.3.0 | 期刊投稿指南调研（官方作者指南、投稿形式要求、费用政策与社区评价） | 🚧 开发中 |
+<!-- SKILL-LIST:END -->
 
 ---
 

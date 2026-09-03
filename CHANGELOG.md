@@ -8,6 +8,18 @@
 
 ## [Unreleased]
 
+### Added（根 README 技能列表自动化 - 2026-09-03）
+
+- 新增 `scripts/update_readme_skill_list.py`：根 `README.md` 技能列表改为自动生成，版本号直接读取 `skills/*/config.yaml`（单一真相来源），状态按语义化版本推导（v1.0.0 及以上为 ✅ 稳定，v0.x.x 为 🚧 开发中）；阶段与功能摘要维护在脚本 `SKILL_SPECS` 登记表，脚本对磁盘目录与登记表做双向校验，目录无 `config.yaml` 时警告跳过。
+- 新增 `scripts/test_update_readme_skill_list.py` 回归测试（14 项），覆盖状态推导、版本校验、双向校验、标记替换与幂等性。
+- `update-template-list.yml` 工作流扩展为同步模板与技能两类列表（含新测试），workflow 更名为 Sync README Lists。
+- 根 `README.md` 技能表格区域加 `SKILL-LIST:START/END` 标记并完成首次生成，自动修正 3 处版本漂移：`nsfc-qc` v1.2.0→v1.2.1、`nsfc-reviewers` v1.4.0→v1.4.1、`research-idea` v0.2.0→v0.2.1。
+- 同步更新 `AGENTS.md`：Skill 相关问题与变更边界补充技能列表同步命令及 `SKILL_SPECS` 登记要求。
+
+### Changed（skills 安装/更新方式对齐上游 - 2026-09-03）
+
+- 根 `README.md` 与 `docs/manual-setup-guide.md` 的 skills 安装/更新说明对齐上游 `huangwb8/skills` 新入口：废弃 `@install/install.sh`（`curl | bash`）与 `install.ps1`（`irm | iex`）旧命令，改用 `bootstrap_install.py` 单行引导（仅依赖 Python 标准库，默认安装 general / research / anthropic-docs 三源）；对话式 Prompt 改为调用 `install-bensz-skills` skill，本地与远程安装命令路径同步更新为 `skills/alpha/install-bensz-skills/scripts/install.py`。
+
 ### Fixed（research skills manifest 契约兼容 - 2026-09-02）
 
 - 修复 `research-literature-review` 与 `research-literature-search` 在同一 Python 进程中加载同名 `query_contract` 时的模块遮蔽；search manifest validator 改用唯一命名的 `rls_contract`，合法 `rls.v1` bundle 可正常验证。search 升至 v1.0.2，review 升至 v1.3.1。

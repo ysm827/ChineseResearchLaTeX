@@ -179,6 +179,7 @@ ChineseResearchLaTeX/
 
 - 先确认是否改动 `SKILL.md`、`config.yaml`、脚本实现、README、CHANGELOG
 - 变更 Skill 后，检查根级 `README.md` 与根级 `CHANGELOG.md` 是否需要同步
+- 根 `README.md` 的技能列表由 `python scripts/update_readme_skill_list.py` 自动生成：版本号与状态直接读取 `skills/*/config.yaml`（v1.0.0 及以上为稳定，v0.x.x 为开发中）；新增、重命名或移除 skill 时，必须同步在脚本 `SKILL_SPECS` 登记表中登记阶段与功能摘要，脚本会对磁盘目录与登记表做双向校验
 
 ### 输出规范
 
@@ -395,7 +396,7 @@ skill_info:
 - 保持现有代码风格和结构
 - 不自动清理/删除 `.DS_Store`
 - `CLAUDE.md` 与 `AGENTS.md` 的核心章节需保持一致
-- 变更 `skills/` 目录内容时，检查 `skills/README.md` 与根级 `README.md` 是否需要同步
+- 变更 `skills/` 目录内容时，检查 `skills/README.md` 与根级 `README.md` 是否需要同步；涉及版本号新增或 skill 目录增删时，运行 `python scripts/update_readme_skill_list.py` 刷新根 `README.md` 的技能列表
 - 变更 `packages/bensz-fonts/` 时，不要把共享字体文件重新复制回 `packages/bensz-nsfc/`、`packages/bensz-cv/` 或各 `projects/` 目录
 - 变更 `packages/bensz-nsfc/` 时，不要顺手把共享字体、共享 `bst` 或公共宏重新复制回 `projects/NSFC_*`
 - 变更 `packages/bensz-paper/` 时，不要重新引入持久化正文 Markdown 副本；优先保持 `projects/paper-sci-01/extraTex/**/*.tex` 与 `projects/paper-coverletter-01/extraTex/**/*.tex` 为 PDF / DOCX 的唯一真相来源

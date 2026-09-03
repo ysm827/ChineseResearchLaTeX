@@ -198,16 +198,27 @@ python packages/bensz-cv/scripts/cv_project_tool.py build --project-dir projects
 
 ## Skills 安装与更新
 
-对应 README 入口：[Skills](../README.md#-skills) 章节的「⚡ 安装/更新」自然语言描述。
+对应 README 入口：[Skills](../README.md#-skills) 章节的安装/更新 Prompt 描述。
 
 下方命令涉及上游 [huangwb8/skills](https://github.com/huangwb8/skills) 仓库。与标书模板不同，Skills 建议直接使用仓库里最新的版本。
 
 ### 一键快速安装/更新
 
+使用官方 `bootstrap_install.py` 单行引导安装（仅依赖 Python 标准库，重复执行即为增量更新）：
+
 | 平台 | 命令 |
 |------|------|
-| **macOS / Linux / WSL** | `curl -fsSL https://raw.githubusercontent.com/huangwb8/skills/main/@install/install.sh \| bash` |
-| **Windows PowerShell** | `irm https://raw.githubusercontent.com/huangwb8/skills/main/@install/install.ps1 \| iex` |
+| **macOS / Linux / WSL** | `python3 -c "import urllib.request; exec(urllib.request.urlopen('https://raw.githubusercontent.com/huangwb8/skills/main/skills/alpha/install-bensz-skills/scripts/bootstrap_install.py').read())"` |
+| **Windows** | `python -c "import urllib.request; exec(urllib.request.urlopen('https://raw.githubusercontent.com/huangwb8/skills/main/skills/alpha/install-bensz-skills/scripts/bootstrap_install.py').read())"`（或改用 `py -3 -c`） |
+
+默认同时安装三个远程源：`general`（huangwb8/skills 通用技能）、`research`（本仓库科研技能）、`anthropic-docs`（anthropics/skills 官方文档技能）。常用参数：
+
+- `--source research`：只安装本仓库的科研技能
+- `--claude` / `--codex`：只安装到对应平台（默认同时安装到 `~/.claude/skills/` 与 `~/.codex/skills/`）
+- `--skill <name>`：只安装指定技能（可重复或逗号分隔）
+- `--check`：预览安装动作，不写入文件
+- `--force`：忽略 MD5 未变化提示，强制重装
+- `--lang zh`：中文安装输出
 
 ### 本地硬编码安装/更新
 
@@ -215,7 +226,7 @@ python packages/bensz-cv/scripts/cv_project_tool.py build --project-dir projects
 git clone https://github.com/huangwb8/skills.git && 
   git clone https://github.com/huangwb8/ChineseResearchLaTeX.git && 
   cd skills &&
-  python3 install-bensz-skills/scripts/install.py --source ../ChineseResearchLaTeX/skills
+  python3 skills/alpha/install-bensz-skills/scripts/install.py --source ../ChineseResearchLaTeX/skills
 ```
 
 ### 远程对话式安装/更新
@@ -223,5 +234,5 @@ git clone https://github.com/huangwb8/skills.git &&
 ```bash
 git clone https://github.com/huangwb8/skills.git && 
   cd skills &&
-  python3 install-bensz-skills/scripts/install.py --remote --check
+  python3 skills/alpha/install-bensz-skills/scripts/install.py --remote --check
 ```

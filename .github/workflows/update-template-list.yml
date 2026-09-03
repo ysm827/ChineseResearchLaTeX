@@ -1,4 +1,4 @@
-name: Sync README Template List
+name: Sync README Lists
 
 on:
   schedule:
@@ -47,12 +47,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest pyyaml
-          pytest -q scripts/test_update_readme_template_list.py scripts/test_issue_templates.py
+          pytest -q scripts/test_update_readme_template_list.py scripts/test_update_readme_skill_list.py scripts/test_issue_templates.py
 
       - name: Update README template list
         env:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/update_readme_template_list.py --repo "${{ env.TARGET_REPO }}"
+
+      - name: Update README skill list
+        run: python scripts/update_readme_skill_list.py
 
       - name: Detect changes
         id: changes
@@ -69,7 +72,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git commit -m "docs: sync template list from latest release"
+          git commit -m "docs: sync template and skill lists"
           git push
 
       - name: Verify README contains cv release links
