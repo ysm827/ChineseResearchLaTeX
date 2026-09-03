@@ -148,17 +148,17 @@ AI 负责格式对齐、参考文献管理、章节重构、中英双语内容�
 |------|------|------|--------|-------------|
 | [thesis-ahnu-master](projects/thesis-ahnu-master/) | 安徽师范大学 | 硕士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-ahnu-master-v4.1.0.zip)（0.34 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-ahnu-master-Overleaf-v4.1.0.zip)（0.05 MB） |
 | [thesis-cas-postdoc](projects/thesis-cas-postdoc/) | 中国科学院 | 博士后 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-cas-postdoc-v4.1.0.zip)（0.38 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-cas-postdoc-Overleaf-v4.1.0.zip)（0.06 MB） |
-| [thesis-hit-doctor](projects/thesis-hit-doctor/) | 哈尔滨工业大学 | 博士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-hit-doctor-v4.1.0.zip)（0.30 MB） | 暂未发布 |
-| [thesis-jlau-doctor](projects/thesis-jlau-doctor/) | 吉林农业大学 | 博士 | 暂未发布 | 暂未发布 |
-| [thesis-jlau-master](projects/thesis-jlau-master/) | 吉林农业大学 | 硕士 | 暂未发布 | 暂未发布 |
-| [thesis-just-bachelor](projects/thesis-just-bachelor/) | 江苏科技大学 | 学士 | 暂未发布 | 暂未发布 |
-| [thesis-jxust-bachelor](projects/thesis-jxust-bachelor/) | 江西理工大学 | 学士 | 暂未发布 | 暂未发布 |
-| [thesis-nju-master](projects/thesis-nju-master/) | 南京大学 | 硕士 | 暂未发布 | 暂未发布 |
-| [thesis-nwu-doctor](projects/thesis-nwu-doctor/) | 西北大学 | 博士 | 暂未发布 | 暂未发布 |
-| [thesis-smu-master](projects/thesis-smu-master/) | 南方医科大学 | 硕士 | 暂未发布 | 暂未发布 |
-| [thesis-smu-postdoc](projects/thesis-smu-postdoc/) | 南方医科大学 | 博士后 | 暂未发布 | 暂未发布 |
-| [thesis-sysu-doctor](projects/thesis-sysu-doctor/) | 中山大学 | 博士 | 暂未发布 | 暂未发布 |
-| [thesis-ucas-doctor](projects/thesis-ucas-doctor/) | 中国科学院大学 | 博士 | 暂未发布 | 暂未发布 |
+| [thesis-hit-doctor](projects/thesis-hit-doctor/) | 哈尔滨工业大学 | 博士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-hit-doctor-v4.1.0.zip)（0.30 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-hit-doctor-Overleaf-v4.1.0.zip)（0.02 MB） |
+| [thesis-jlau-doctor](projects/thesis-jlau-doctor/) | 吉林农业大学 | 博士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-jlau-doctor-v4.1.0.zip)（1.18 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-jlau-doctor-Overleaf-v4.1.0.zip)（0.47 MB） |
+| [thesis-jlau-master](projects/thesis-jlau-master/) | 吉林农业大学 | 硕士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-jlau-master-v4.1.0.zip)（1.19 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-jlau-master-Overleaf-v4.1.0.zip)（0.47 MB） |
+| [thesis-just-bachelor](projects/thesis-just-bachelor/) | 江苏科技大学 | 学士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-just-bachelor-v4.1.0.zip)（1.40 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-just-bachelor-Overleaf-v4.1.0.zip)（0.58 MB） |
+| [thesis-jxust-bachelor](projects/thesis-jxust-bachelor/) | 江西理工大学 | 学士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-jxust-bachelor-v4.1.0.zip)（0.39 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-jxust-bachelor-Overleaf-v4.1.0.zip)（0.12 MB） |
+| [thesis-nju-master](projects/thesis-nju-master/) | 南京大学 | 硕士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-nju-master-v4.1.0.zip)（1.90 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-nju-master-Overleaf-v4.1.0.zip)（1.24 MB） |
+| [thesis-nwu-doctor](projects/thesis-nwu-doctor/) | 西北大学 | 博士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-nwu-doctor-v4.1.0.zip)（0.99 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-nwu-doctor-Overleaf-v4.1.0.zip)（0.35 MB） |
+| [thesis-smu-master](projects/thesis-smu-master/) | 南方医科大学 | 硕士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-smu-master-v4.1.0.zip)（0.54 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-smu-master-Overleaf-v4.1.0.zip)（0.18 MB） |
+| [thesis-smu-postdoc](projects/thesis-smu-postdoc/) | 南方医科大学 | 博士后 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-smu-postdoc-v4.1.0.zip)（0.41 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-smu-postdoc-Overleaf-v4.1.0.zip)（0.08 MB） |
+| [thesis-sysu-doctor](projects/thesis-sysu-doctor/) | 中山大学 | 博士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-sysu-doctor-v4.1.0.zip)（0.55 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-sysu-doctor-Overleaf-v4.1.0.zip)（0.63 MB） |
+| [thesis-ucas-doctor](projects/thesis-ucas-doctor/) | 中国科学院大学 | 博士 | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-ucas-doctor-v4.1.0.zip)（0.41 MB） | [下载](https://github.com/huangwb8/ChineseResearchLaTeX/releases/download/v4.1.0/thesis-ucas-doctor-Overleaf-v4.1.0.zip)（0.53 MB） |
 
 ### 简历模板
 
