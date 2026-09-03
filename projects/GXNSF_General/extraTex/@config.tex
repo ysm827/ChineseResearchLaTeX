@@ -54,12 +54,12 @@
 % 对应方正字体。若系统中没有原始字体，则由 bensz-fonts 先使用包内的
 % 同款方正字体，再按 DOCX 的 Microsoft YaHei 替代记录和跨平台字体回退。
 \newcommand{\GXNSFSetSystemFangsong}[1]{%
-  \setCJKmainfont[AutoFakeBold=2.5]{#1}%
-  \setCJKfamilyfont{gxnsffangsong}[AutoFakeBold=2.5]{#1}%
+  \setCJKmainfont[AutoFakeBold=5]{#1}%
+  \setCJKfamilyfont{gxnsffangsong}[AutoFakeBold=5]{#1}%
 }
 
 \newcommand{\GXNSFSetSystemKai}[1]{%
-  \setCJKfamilyfont{gxnsfkai}[AutoFakeBold=2.5]{#1}%
+  \setCJKfamilyfont{gxnsfkai}[AutoFakeBold=5]{#1}%
 }
 
 \newcommand{\GXNSFSetFallbackFangsong}{\BenszFontsGXNSFSetupFangsongFallback}
@@ -72,14 +72,22 @@
   }{%
     \IfFontExistsTF{方正仿宋简体}{%
       \GXNSFSetSystemFangsong{方正仿宋简体}%
-    }{\GXNSFSetFallbackFangsong}%
+    }{%
+      \IfFontExistsTF{Microsoft YaHei}{%
+        \GXNSFSetSystemFangsong{Microsoft YaHei}%
+      }{\GXNSFSetFallbackFangsong}%
+    }%
   }%
   \IfFontExistsTF{方正楷体_GBK}{%
     \GXNSFSetSystemKai{方正楷体_GBK}%
   }{%
     \IfFontExistsTF{方正楷体简体}{%
       \GXNSFSetSystemKai{方正楷体简体}%
-    }{\GXNSFSetFallbackKai}%
+    }{%
+      \IfFontExistsTF{Microsoft YaHei}{%
+        \GXNSFSetSystemKai{Microsoft YaHei}%
+      }{\GXNSFSetFallbackKai}%
+    }%
   }%
 }
 
@@ -119,15 +127,17 @@
 }
 
 \newcommand{\GXNSFPart}[1]{%
-  \GXNSFTemplateParagraph[\gxnsfkai]{#1}%
+  \GXNSFTemplateParagraph[\gxnsfkai\raggedright\setlength{\parindent}{32pt}]{#1}%
 }
 
+% 官方提纲按 Word 基线给出固定断点；略放宽右侧可用宽度，避免加粗标题
+% 增加字面宽度后把断点前的最后一个汉字挤到下一行。
 \newcommand{\GXNSFItem}[2]{%
-  \GXNSFTemplateParagraph[\gxnsffangsong]{{\bfseries #1}#2}%
+  \GXNSFTemplateParagraph[\gxnsffangsong\raggedright\setlength{\parindent}{32pt}\emergencystretch=12pt\rightskip=-12pt]{{\bfseries #1}#2}%
 }
 
 \newcommand{\GXNSFItemMixed}[3]{%
-  \GXNSFTemplateParagraph[\gxnsffangsong]{{\bfseries #1}#2{\bfseries #3}}%
+  \GXNSFTemplateParagraph[\gxnsffangsong\raggedright\setlength{\parindent}{32pt}\emergencystretch=12pt\rightskip=-12pt]{{\bfseries #1}#2{\bfseries #3}}%
 }
 
 \newcommand{\GXNSFBodyText}{%
