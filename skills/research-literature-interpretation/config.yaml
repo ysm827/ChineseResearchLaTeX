@@ -1,0 +1,19 @@
+skill_info:
+  name: "research-literature-interpretation"
+  version: "0.1.0"
+  description: "像资深研究者带学生一样解读单篇论文：提炼问题、机制、证据强弱、边界与可迁移启发。用户提供 PDF、arXiv/DOI/出版社链接、本地论文或正文片段并希望理解、批判、复现或学习时使用；不用于论文发现、多论文综述或只改写摘要。"
+  author: "Bensz Conan"
+  category: "research"
+
+style:
+  paragraph_hard_max_chars: 160
+  max_sentences_per_paragraph: 4
+  max_bold_spans_per_section: 3
+  max_blockquotes_per_section: 1
+
+validation:
+  required_knowledge_levels:
+    - 原文事实
+    - 作者主张
+    - 我的解释|我的解读
+    - 待验证

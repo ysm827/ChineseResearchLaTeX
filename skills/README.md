@@ -770,6 +770,8 @@ python3 research-literature-search/scripts/search_runner.py validate --bundle ./
 
 - **research-topic-extractor**：前置步骤，提取主题关键词
 - **research-literature-search**：检索生产者，输出 `rls.v1` manifest/canonical 候选交接包
+- **research-literature-radar**：按主题分层发现、筛选并归档重要研究文献（可调用 research-literature-search）
+- **research-literature-interpretation**：导师式解读单篇研究文献，重建机制、证据边界与可迁移启发
 - **research-literature-review**：核心文献综述（必需依赖 research-literature-search；可选依赖 research-topic-extractor 的输出）
 - **research-guide-updater**：中间优化，基于综述结果沉淀写作规范（依赖 research-literature-review 的输出）
 - **nsfc系列写作skills**：最终撰写标书各模块（可选依赖 research-guide-updater 优化的指南）

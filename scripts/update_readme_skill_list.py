@@ -111,6 +111,16 @@ SKILL_SPECS: tuple[SkillSpec, ...] = (
         summary="文献驱动的科研分析策略规划",
     ),
     SkillSpec(
+        name="research-literature-radar",
+        stage="📚 文献调研",
+        summary="分层发现、筛选并长期归档重要研究文献",
+    ),
+    SkillSpec(
+        name="research-literature-interpretation",
+        stage="📚 文献调研",
+        summary="导师式解读单篇研究文献，重建机制、证据边界与可迁移启发",
+    ),
+    SkillSpec(
         name="research-idea",
         stage="📚 文献调研",
         summary="基于查新与多轮独立审查提出科学问题和可证伪假设",
