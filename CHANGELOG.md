@@ -6,6 +6,13 @@
 
 ---
 
+## [Unreleased]
+
+### Changed（变更）
+
+- `research-idea` 升级至 v0.2.2：默认研究想法报告统一写入 `./docs/ideas/`，并将具体报告文件名从 Skill 触发描述移至输出规范，避免根目录污染与触发元数据冗余。
+- 将尚未上线的 `research-paper-interpretation`、`research-paper-radar` 重命名为 `research-literature-interpretation`、`research-literature-radar`，同步目录、交叉引用、运行路径和系统级安装；不保留旧名兼容。
+
 ## [4.1.0] - 2026-09-03
 
 ### Added（根 README 技能列表自动化 - 2026-09-03）

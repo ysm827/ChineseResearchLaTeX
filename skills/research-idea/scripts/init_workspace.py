@@ -40,6 +40,7 @@ DEFAULT_CONFIG = {
         ],
     },
     "output": {
+        "default_dir": "docs/ideas",
         "filename_template": "Research-Idea_{repo}_{pr}_{timestamp}.md",
         "timestamp_format": "%Y%m%d%H%M%S",
         "unsafe_filename_chars": '/\\:*?"<>|',
@@ -251,7 +252,7 @@ def main() -> None:
     parser.add_argument("--input-label", required=True, help="资料或主题的简短标签")
     parser.add_argument("--cwd", default=".", help="用户当前工作目录，默认当前目录")
     parser.add_argument("--workspace-dir", help="显式兼容工作区根目录；默认使用任务级 BenszAPI 工作区")
-    parser.add_argument("--output-dir", help="最终 Markdown 输出目录，默认 <cwd>")
+    parser.add_argument("--output-dir", help="最终 Markdown 输出目录，默认 <cwd>/docs/ideas")
     parser.add_argument("--test-dir", help="测试区目录，默认 <cwd>/tests/research-idea")
     parser.add_argument("--with-test-dir", action="store_true", help="创建测试区；普通用户运行默认不创建")
     parser.add_argument("--repo-name", help="覆盖自动识别的 GitHub 仓库名")
@@ -304,7 +305,10 @@ def main() -> None:
         write_task_readme(task_root, str(workspace_config["task_label"]))
     if not re.fullmatch(rf"{re.escape(run_prefix)}[A-Za-z0-9_.-]+", run_id):
         raise SystemExit(f"run-id 必须只包含字母、数字、点、下划线和连字符")
-    output_dir = resolve_dir(args.output_dir, default=cwd)
+    output_dir = resolve_dir(
+        args.output_dir,
+        default=cwd / str(output_config.get("default_dir", "docs/ideas")),
+    )
     test_dir = resolve_dir(args.test_dir, default=cwd / tests_config["default_dir"])
     output_filename = output_config["filename_template"].format(
         repo=repo,

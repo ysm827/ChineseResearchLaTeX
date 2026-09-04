@@ -10,7 +10,7 @@
 ```text
 请使用 research-idea skill 根据我提供的资料提出关键科学问题和可证伪科学假设。
 输入：下面这段项目背景/实验现象/论文草稿/文件路径/URL。
-输出：一个 Research-Idea_{github仓库名}_{pr名}_{时间戳}.md 报告，放在当前项目根目录。
+输出：`./docs/ideas/Research-Idea_{github仓库名}_{pr名}_{时间戳}.md`。
 ```
 
 进阶 Prompt：
@@ -18,7 +18,7 @@
 ```text
 请使用 research-idea skill 根据 ./notes 和 ./draft.md 提出关键科学问题和可证伪科学假设。
 输入：./notes 文件夹 + ./draft.md。
-输出：/path/to/output/ 目录下的 Research-Idea_{github仓库名}_{pr名}_{时间戳}.md。
+输出：`/path/to/output/` 目录下的 `Research-Idea_{github仓库名}_{pr名}_{时间戳}.md`。
 另外，还有下列参数约束：
 - 轮次：5 轮独立审查
 - 研究边界：只考虑可在 6 个月内验证的假设
@@ -42,7 +42,7 @@
 ```text
 请使用 research-idea skill。
 输入：我们发现处理 A 后细胞迁移增强，但增殖没有变化；已有 RNA-seq 显示通路 B 上调。
-输出：当前目录下的 Markdown 报告。
+输出：默认目录 `./docs/ideas/` 下的 Markdown 报告。
 ```
 
 ### 示例 2：从项目资料夹找创新点
@@ -50,14 +50,14 @@
 ```text
 请使用 research-idea skill。
 输入：./project-background/，里面有 preliminary data、读书笔记和一份 grant 草稿。
-输出：./outputs/ 目录下的 Research-Idea_{github仓库名}_{pr名}_{时间戳}.md。
+输出：`./outputs/` 目录下的 `Research-Idea_{github仓库名}_{pr名}_{时间戳}.md`。
 ```
 
 ## 输出文件
 
 | 文件 | 说明 |
 |------|------|
-| `Research-Idea_{repo}_{pr}_{timestamp}.md` | 最终研究想法报告 |
+| `docs/ideas/Research-Idea_{repo}_{pr}_{timestamp}.md` | 默认最终研究想法报告路径；可用 `--output-dir` 或用户参数覆盖 |
 | `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/research-idea/{yyyy-mm-dd-hh-mm}/` | 隐藏工作区，保存中间资料、查新记录和审查草稿 |
 | `tests/research-idea/` | 技能开发测试区；普通用户运行不会默认创建 |
 

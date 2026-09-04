@@ -1,6 +1,6 @@
 skill_info:
   name: "research-idea"
-  version: "0.2.1"
+  version: "0.2.2"
   description: "根据用户资料提出关键科学问题和可证伪科学假设，并通过 Premium 查新与多轮独立审查打磨最佳研究想法。"
   author: "Bensz Conan"
   category: "research"
@@ -54,7 +54,7 @@ iteration:
     - "已充分研究"
 
 output:
-  default_dir: "."
+  default_dir: "docs/ideas"
   filename_template: "Research-Idea_{repo}_{pr}_{timestamp}.md"
   timestamp_format: "%Y%m%d%H%M%S"
   unsafe_filename_chars: "/\\:*?\"<>|"

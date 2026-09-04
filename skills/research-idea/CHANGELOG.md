@@ -8,7 +8,11 @@
 
 ### Changed
 
+- 默认最终报告目录由项目根目录调整为 `./docs/ideas/`；`init_workspace.py`、`config.yaml` 与 README 示例同步更新。
+- `SKILL.md` frontmatter `description` 聚焦触发条件与能力边界，移除具体 `Research-Idea_*.md` 文件名；文件名模板保留在输出规范中。
+
 - `config.yaml`：版本号 `0.2.0 → 0.2.1`；最终报告泄露校验新增 `.parallel-vibe/` 禁止路径，兼容 `parallel-vibe` 默认工作区目录变更。
+- 本轮补丁版本推进至 `0.2.2`，用于记录默认报告目录与触发描述调整。
 - `SKILL.md` / `scripts/validate_report.py`：同步最终报告不得暴露 `.parallel-vibe/` 中间产物路径。
 - 依赖口径迁移为 `research-topic-extractor` 与 `research-literature-review`。
 - 依赖检查脚本增加旧名 fallback：`get-review-theme`、`systematic-literature-review`。

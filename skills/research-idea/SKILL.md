@@ -1,6 +1,6 @@
 ---
 name: research-idea
-description: 当用户提供任意研究资料、项目背景、实验结果、论文草稿、PR/仓库信息或自然语言线索，希望“提出科学问题”“凝练研究假设”“找创新点”“判断一个想法是否值得做”时使用。该 skill 通过 research-topic-extractor 与 research-literature-review 做查新，并用 parallel-vibe 默认 3 轮串行独立审查打磨多个“科学问题-可证伪假设”候选，最终输出 Research-Idea_{github仓库名}_{pr名}_{时间戳}.md。⚠️ 不适用：用户只需要完整实验方案/分析计划（优先 research-plan）、只要写文献综述正文（优先 research-literature-review）、或只要普通头脑风暴且不需要查新。
+description: 当用户提供研究资料、项目背景、实验结果、论文草稿、PR/仓库信息或自然语言线索，希望提出科学问题、凝练可证伪假设、寻找创新点或判断研究想法价值时使用。通过主题提取、Premium 查新和多轮独立审查形成可推进的研究想法。⚠️ 不适用：用户只需要完整实验方案/分析计划（优先 research-plan）、只要写文献综述正文（优先 research-literature-review）、或只要普通头脑风暴且不需要查新。
 metadata:
   author: Bensz Conan
   short-description: 基于查新与多轮独立审查提出科学问题和可证伪假设
@@ -36,17 +36,19 @@ metadata:
 
 - 必需：任意资料或信息，如文本、文件、文件夹、URL、论文线索、实验现象、代码仓库或 PR 背景。
 - 可选：
-- 输出路径：用户指定时遵从；未指定时放在当前项目根目录。
+- 输出路径：用户指定时遵从；未指定时放在 `./docs/ideas/`。
 - 工作区：用户指定时遵从；未指定时为当前工作目录下 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/research-idea/`。
 - 轮次：默认 3 轮；用户指定时遵从。
 
 ## 输出
 
-最终交付一个 Markdown 文件，默认命名：
+最终交付一个 Markdown 文件。未指定输出目录时，写入当前项目的 `./docs/ideas/`；默认命名为：
 
 ```text
 Research-Idea_{github仓库名}_{pr名}_{时间戳}.md
 ```
+
+完整默认路径为 `./docs/ideas/Research-Idea_{github仓库名}_{pr名}_{时间戳}.md`。用户显式指定输出目录或文件名时遵从，但不得将正式报告放入隐藏工作区。
 
 如果无法识别 GitHub 仓库名或 PR 名，使用当前目录名与当前分支名；仍无法识别时分别使用 `repo` 与 `manual`。
 
@@ -60,7 +62,7 @@ Research-Idea_{github仓库名}_{pr名}_{时间戳}.md
 ## 工作区
 
 - 默认工作区：`{cwd}/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/research-idea/{yyyy-mm-dd-hh-mm}/`。
-- 所有中间文件、查新记录、并行审查产物、草稿和日志都必须保存在隐藏工作区内；除最终 Markdown 外，不要写到项目根目录。
+- 所有中间文件、查新记录、并行审查产物、草稿和日志都必须保存在隐藏工作区内；除最终 Markdown 外，不要写到项目根目录或 `docs/ideas/`。
 - 若用户显式指定工作区，目录名仍必须是隐藏目录（以 `.` 开头），并且位于当前工作目录内；输出目录不得位于隐藏工作区内。
 
 初始化优先使用脚本：
