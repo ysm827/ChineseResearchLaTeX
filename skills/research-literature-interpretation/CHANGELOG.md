@@ -6,6 +6,7 @@
 
 ### Changed（变更）
 
+- `0.1.1`：统一 Agent 展示名为 `Research Literature Interpretation`，与 Skill slug 和目录命名保持一致。
 - 将项目论文库路径统一为 `docs/papers/`，同步更新笔记输出说明和脚本默认参数。
 - 对齐 Agent Skills 开发规范：统一作者/版本元数据、OpenAI UI 元数据和设计缺陷上报边界。
 
