@@ -147,7 +147,7 @@ def main() -> int:
         description="Mechanical lint only; independent evidence review is still required."
     )
     parser.add_argument("notes", nargs="*", type=Path)
-    parser.add_argument("--papers", type=Path, default=Path("papers"))
+    parser.add_argument("--papers", type=Path, default=Path("docs/papers"))
     parser.add_argument("--ids-file", type=Path)
     parser.add_argument("--style", action="store_true", help="also enforce configurable mobile-reading style limits")
     args = parser.parse_args()

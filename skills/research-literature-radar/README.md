@@ -10,6 +10,6 @@
 
 - 先硬过滤相关性、时间/venue 与元数据完整度，再按 idea-level 维度评分；`confidence` 单独记录。
 - 外部编号写入 `raw/metadata.json` 与 `catalog.jsonl` 的 `identifiers`，目录 ID 使用 `<首位作者全名>-<年份>-<工作关键词>`。
-- 论文实体只写入 `papers/<friendly-id>/raw/` 和同名学习笔记；运行产物统一放 `.bensz-api/research-literature-radar/`。
+- 论文实体只写入 `docs/papers/<friendly-id>/raw/` 和同名学习笔记；运行产物统一放 `.bensz-api/research-literature-radar/`。
 
 详细执行契约见 [`SKILL.md`](SKILL.md)。版本以 [`config.yaml`](config.yaml) 为准。

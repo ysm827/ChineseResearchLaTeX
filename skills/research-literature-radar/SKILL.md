@@ -80,13 +80,13 @@ dedupe_map.json
 
 先满足各类最低配额，再按总分、思想标签/年份/作者多样性补足；输出高分但落选候选及原因。
 
-`scripts/catalog.py` 提供不依赖网络的 ID 生成、标题标准化、索引加载和重复判定；`scripts/validate_layout.py` 在交付前检查运行级文件是否错误写入 `papers/` 根目录。脚本不会下载或删除文件。
+`scripts/catalog.py` 提供不依赖网络的 ID 生成、标题标准化、索引加载和重复判定；`scripts/validate_layout.py` 在交付前检查运行级文件是否错误写入 `docs/papers/` 根目录。脚本不会下载或删除文件。
 
 ### 输出
 
 每轮先加载 catalog，再消费已验证的 search bundle。重复项只更新来源、版本、评分或跟进记录；只有真正新论文才创建目录。将 `discovery.md`、`selection.md`、`dedup-report.md` 和运行摘要写入同一 `runs/<run-id>/`，并明确候选数 = 入选 + 跳过 + 待确认 + 失败。
 
-交付前确认：每个实际使用的 search manifest 可消费、canonical 数量可追溯；五类渠道的适用性和覆盖情况有说明；每篇候选标注可复用思想标签，并有一手论文页面/PDF和至少一个独立发现信号（URL、访问日期、用途）；ID、metadata、catalog、raw manifest 与内部路径一致；根目录 `index.md` 已包含每篇新增论文；`papers/` 根目录没有运行级文件。
+交付前确认：每个实际使用的 search manifest 可消费、canonical 数量可追溯；五类渠道的适用性和覆盖情况有说明；每篇候选标注可复用思想标签，并有一手论文页面/PDF和至少一个独立发现信号（URL、访问日期、用途）；ID、metadata、catalog、raw manifest 与内部路径一致；根目录 `index.md` 已包含每篇新增论文；`docs/papers/` 根目录没有运行级文件。
 
 ### 输出管理
 
@@ -95,7 +95,7 @@ dedupe_map.json
 身份比对顺序为 DOI → arXiv/OpenReview → 其它稳定 ID → 标准化标题+首位作者+年份。预印本与正式版合并并保留版本链接；冲突时在关键词末尾追加稳定短哈希。已有笔记不覆盖，只补充缺失字段并在 `history` 写明变更原因。
 
 ```text
-papers/
+docs/papers/
 └── <friendly-id>/
     ├── raw/                       # 公开 PDF、HTML、metadata、manifest
     └── <friendly-id>.md           # 学习笔记
@@ -105,7 +105,7 @@ papers/
 └── runs/<run-id>/                 # run.yaml、search 交接包、筛选与去重报告
 ```
 
-`papers/` 只存论文实体及其原始材料/学习笔记；运行级配置、manifest、筛选报告、日志和去重报告统一写入 `.bensz-api/research-literature-radar/`。原始文件用外部标识命名，可记录 SHA-256，禁止静默覆盖。
+`docs/papers/` 只存论文实体及其原始材料/学习笔记；运行级配置、manifest、筛选报告、日志和去重报告统一写入 `.bensz-api/research-literature-radar/`。原始文件用外部标识命名，可记录 SHA-256，禁止静默覆盖。
 
 `catalog.jsonl` 每行至少记录 `id,title,authors,year,venue,status,paper_types,tags,identifiers,sources,files,scores,confidence,first_seen_run,last_seen_run,history`，且 `id` 必须与论文目录名和笔记文件名一致。
 
@@ -123,7 +123,6 @@ papers/
 
 ### 公共硬约束
 
-本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
 - 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
 - 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
 - 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。

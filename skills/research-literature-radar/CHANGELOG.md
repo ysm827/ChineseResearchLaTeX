@@ -6,6 +6,7 @@
 
 ### Changed（变更）
 
+- 将正式论文库路径统一为 `docs/papers/`，同步更新目录契约、README 和脚本默认参数。
 - 对齐 Agent Skills 开发规范：补齐作者/版本元数据、OpenAI UI 元数据、设计缺陷上报边界和用户文档。
 - 重命名 skill：`research-paper-radar` → `research-literature-radar`，同步更新 SKILL.md 标识、交叉引用与 `.bensz-api/research-literature-radar/` 运行目录；该新名称不保留旧名兼容。
 

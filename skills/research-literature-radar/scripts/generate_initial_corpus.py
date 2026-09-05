@@ -78,7 +78,7 @@ def ensure_bootstrap_target(papers_root: Path, catalog_path: Path) -> None:
         raise FileExistsError("initial corpus already exists; refusing to overwrite it")
 
 def main():
-    root = Path("papers")
+    root = Path("docs/papers")
     runtime_root = Path(".bensz-api") / "research-literature-radar"
     retrieved = date.today().isoformat()
     run = f"run-{retrieved.replace('-', '')}-initial"

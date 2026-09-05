@@ -31,7 +31,7 @@ def validate(papers_root: Path) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("papers", nargs="?", type=Path, default=Path("papers"))
+    parser.add_argument("papers", nargs="?", type=Path, default=Path("docs/papers"))
     args = parser.parse_args()
     errors = validate(args.papers)
     if errors:

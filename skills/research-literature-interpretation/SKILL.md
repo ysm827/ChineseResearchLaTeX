@@ -16,7 +16,7 @@ metadata:
 - 确认标题、作者、年份、venue、版本、DOI/arXiv ID、一手 URL、访问日期和可读范围。版本冲突并列记录，不擅自裁决。
 - 优先阅读摘要、引言、结论、方法、关键图表/图注、消融、失败案例、附录和代码说明，再深挖影响结论的部分。只有摘要或图表时，交付证据地图并收缩结论。
 - 只用合法可访问的一手材料和可靠跟进来源；不绕过访问限制，不执行未知代码。区分静态阅读、实际运行和作者自报结果。
-- 默认写入 `papers/<friendly-id>/<friendly-id>.md`。已有笔记默认修订或追加，不覆盖用户内容；不改 `raw/` 或 `.bensz-api/research-literature-radar/catalog.jsonl`。中间材料放本轮 `.bensz-api/`。
+- 默认写入 `docs/papers/<friendly-id>/<friendly-id>.md`。已有笔记默认修订或追加，不覆盖用户内容；不改 `raw/` 或 `.bensz-api/research-literature-radar/catalog.jsonl`。中间材料放本轮 `.bensz-api/`。
 
 ## 流程
 
@@ -119,7 +119,6 @@ python3 scripts/validate_notes.py --style <note>
 
 ### 公共硬约束
 
-本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
 - 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
 - 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
 - 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。

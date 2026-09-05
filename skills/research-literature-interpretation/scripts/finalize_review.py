@@ -66,7 +66,7 @@ def render_promoted_notes(paths: list[Path]) -> dict[Path, bytes]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--papers", type=Path, default=Path("papers"))
+    parser.add_argument("--papers", type=Path, default=Path("docs/papers"))
     parser.add_argument("--ids-file", type=Path, required=True)
     parser.add_argument("--catalog", type=Path, default=Path(".bensz-api/research-literature-radar/catalog.jsonl"))
     parser.add_argument("--summary", type=Path, required=True)

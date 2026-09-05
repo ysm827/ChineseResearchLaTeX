@@ -35,7 +35,7 @@
       "id": 6,
       "prompt": "请重新解读 ResNet 原始论文。最终只写一个版本，但要让我在手机上快速扫到精髓，也要让刚入门者看懂 shortcut 的直觉，并给研究者保留公式、实验协议和可推翻的替代解释。",
       "expected_output": "短段落、克制且有职责的加粗/引用块；首屏可复述；同一主线按直觉—技术—核查渐进展开，不为不同读者复制三套摘要；证据数字和边界完整。",
-      "files": ["papers/kaiming-he-2015-resnet/raw/arxiv-1512.03385--v1.pdf"]
+      "files": ["docs/papers/kaiming-he-2015-resnet/raw/arxiv-1512.03385--v1.pdf"]
     }
   ]
 }

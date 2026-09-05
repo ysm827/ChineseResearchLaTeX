@@ -194,7 +194,7 @@ def main() -> int:
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument("--check", action="store_true")
     action.add_argument("--write", action="store_true")
-    parser.add_argument("--papers", type=Path, default=Path("papers"))
+    parser.add_argument("--papers", type=Path, default=Path("docs/papers"))
     parser.add_argument("--catalog", type=Path, default=Path(".bensz-api/research-literature-radar/catalog.jsonl"))
     args = parser.parse_args()
     try:
