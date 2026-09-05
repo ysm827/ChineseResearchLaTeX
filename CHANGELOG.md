@@ -8,6 +8,10 @@
 
 ## [Unreleased]
 
+- 更新 `AGENTS.md` 的 Skill 开发规则：新增或修改 Skill 前须重新查阅并对齐 `huangwb8/skills` 上游 `AGENTS.md`，以应对规范变化。
+
+- 清理各 Skill 文档中指向外部 `docs/templates/skill-common-constraints.md` 的模板维护提示。
+
 - 修复项目内 27 个 `SKILL.md` 的开头标题结构：移除重复的 Skill slug 标题和错误插入的 `## 目标`，保留原有正文标题；同时增强 `scripts/validate_skill_docs.py` 对该类结构回归的检查。
 
 - 精简根目录 `AGENTS.md`：移除失效或过细的模板目录说明，保留责任分层、任务工作区、BAC 贡献记录、Skill 开发、验证、文档同步和安全边界等真正影响协作的规则。
