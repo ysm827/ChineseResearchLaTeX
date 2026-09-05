@@ -30,6 +30,9 @@ DEFAULT_CONFIG = {
             "output",
             "log",
             "theme",
+            "research-literature-radar",
+            "research-literature-interpretation",
+            "research-map",
             "candidates",
             "novelty",
             "parallel-vibe",
@@ -50,6 +53,8 @@ DEFAULT_CONFIG = {
     "dependencies": {
         "required_skills": [
             "research-topic-extractor",
+            "research-literature-radar",
+            "research-literature-interpretation",
             "research-literature-review",
             "parallel-vibe",
         ],

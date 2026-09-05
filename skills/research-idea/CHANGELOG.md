@@ -8,6 +8,9 @@
 
 ### Changed
 
+- `0.3.1`：统一文献雷达与论文解读的任务工作区子目录为 `research-literature-radar/` 与 `research-literature-interpretation/`，避免 Skill 名称与产物路径脱节。
+- `0.3.0`：重构候选生成流程，新增 `research-literature-radar` 与 `research-literature-interpretation` 前置阶段；要求先形成带论文锚点的研究脉络 map，再由多个独立 agent 基于 map 生成初始候选。
+- 同步更新 `config.yaml`、`init_workspace.py`、README 与报告模板，增加文献雷达、论文解读和研究脉络 map 的中间产物目录及输出要求。
 - 默认最终报告目录由项目根目录调整为 `./docs/ideas/`；`init_workspace.py`、`config.yaml` 与 README 示例同步更新。
 - `SKILL.md` frontmatter `description` 聚焦触发条件与能力边界，移除具体 `Research-Idea_*.md` 文件名；文件名模板保留在输出规范中。
 
