@@ -3,31 +3,25 @@ name: research-guide-updater
 description: 当用户明确要求"更新项目指南""同步指南""沉淀洞见到指南"，或要求使用旧名 guide-updater skill 时使用。将对话中新产生的可复用写作洞见实时沉淀到项目指南文件，保持术语口径一致、结构稳定、可检验与可复现。调用时必须指定指南文件路径。
 metadata:
   author: Bensz Conan
-  short-description: 项目指南实时更新器
-  keywords:
-    - research-guide-updater
-    - 项目指南
-    - 写作洞见
-    - 知识沉淀
-    - 术语一致
-    - 指南更新
-    - guide-updater
-  triggers:
-    - research-guide-updater
-    - 更新项目指南
-    - 同步指南
-    - 沉淀到指南
-    - guide updater
-config: skills/research-guide-updater/config.yaml
 ---
-
 # 项目指南更新器
 
-## BenszAPI 任务工作区
+### 先决条件
 
-本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+每次更新前快速自检：
 
-## 与 bensz-collect-bugs 的协作约定
+- 不新增新的 `##` 级标题；只在既有小节/列表中"融入"新增要点。
+- 不改动既有标题文本、编号、顺序；不为"整理美观"重排大量内容。
+- 新增内容默认写成 1 条或少量 bullet，紧贴相邻条目的写法与语气。
+- 涉及事实/文献：只写可核验信息；无法核验则标注"待核验"，不要编造详细信息。
+
+## 流程
+
+### 输入
+
+按用户请求和配置文件提供必要输入；缺失信息应明确列出并停止依赖该输入的步骤。
+
+### 执行步骤
 
 - 当用户环境中出现因本 skill 设计缺陷导致的 bug 时，优先使用 `bensz-collect-bugs` 按规范记录到 `~/.bensz-skills/bugs/`，严禁直接修改用户本地 Claude Code / Codex 中已安装的 skill 源码。
 - 若 AI 仍可通过 workaround 继续完成用户任务，应先记录 bug，再继续完成当前任务。
@@ -37,8 +31,6 @@ config: skills/research-guide-updater/config.yaml
 将对话中新产生的可复用写作洞见实时沉淀到项目指南文件，保持术语口径一致、结构稳定、可检验与可复现。
 
 旧名 `guide-updater` 仅作为 prompt 兼容别名保留；安装新版本时系统级旧目录会被清理。
-
-## 使用方式
 
 调用此技能时，**必须**在参数中指定指南文件路径：
 
@@ -50,21 +42,8 @@ config: skills/research-guide-updater/config.yaml
 - "更新项目指南（路径：projects/MyProject/项目指南.md）"
 - "把这些内容同步到指南文件 docs/写作指南.md"
 
-## 先决条件
-
-每次更新前快速自检：
-
-- 不新增新的 `##` 级标题；只在既有小节/列表中"融入"新增要点。
-- 不改动既有标题文本、编号、顺序；不为"整理美观"重排大量内容。
-- 新增内容默认写成 1 条或少量 bullet，紧贴相邻条目的写法与语气。
-- 涉及事实/文献：只写可核验信息；无法核验则标注"待核验"，不要编造详细信息。
-
-## 抽取"原子洞见"
-
 - 将用户表达拆成若干条"可落笔"的要点，每条只包含一个主张/规则/写法。
 - 为每条要点附 1 句"写进指南的目的"（例如：统一口径/防评审质疑/可复现/风险控制）。
-
-## 选择融入位置
 
 - 需要更细的落点规则时，先读 `skills/research-guide-updater/references/guide-structure-map.md` 再动手。
 - 写作原则/禁区/句式 → `## 写作哲学`
@@ -78,20 +57,48 @@ config: skills/research-guide-updater/config.yaml
 
 不确定放哪：优先放到"最能减少未来写作返工"的位置；仍不确定就先问用户"更希望作为写作哲学/技术路线/风险控制哪一类沉淀？"再改文件。
 
-## 以最小补丁写入
-
 - 只做"增量补丁"：新增 1--3 条 bullet 或在既有 bullet 末尾补 1 句澄清。
 - 不新开大段长文；如果洞见很大，先拆成多个 bullet 分散落在对应小节。
 - 与已有术语保持一致（参考项目既有术语表）。
-
-## 更新后校验
-
-- 运行 `python skills/research-guide-updater/scripts/validate_guide.py <指南文件路径>`（或手动确认关键 `##` 标题仍存在）。
-- 搜索是否意外新增 `##` 级标题或引入"另起炉灶"的新结构。
-
-## Resources
 
 | 目录 | 用途 |
 |------|------|
 | `scripts/` | 校验 `项目指南.md` 是否保持关键结构与必要标题 |
 | `references/` | 记录结构映射与落点规则，避免反复判断放置位置 |
+
+### 输出
+
+输出 Skill description 所承诺的交付物，并明确格式、路径和失败返回形式。
+
+### 输出管理
+
+本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+
+### 校验
+
+- 运行 `python skills/research-guide-updater/scripts/validate_guide.py <指南文件路径>`（或手动确认关键 `##` 标题仍存在）。
+- 搜索是否意外新增 `##` 级标题或引入"另起炉灶"的新结构。
+
+### 失败与恢复
+
+保留错误证据和已完成产物；仅在输入、环境或外部依赖恢复后从最近的失败步骤重试。
+
+## 约束
+
+遵守以下公共约束，并执行本 Skill 的专属边界。
+
+### 公共硬约束
+
+本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
+- 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
+- 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
+- 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。
+- 不记录 API Key、访问令牌、密码、Cookie、环境/凭据文件、私有 Prompt、身份信息、本地用户名、主机名或不必要的大体积原始数据。
+- 文件路径必须规范化并限制在授权项目范围内；外部 URL、子进程和网络访问遵循最小权限，防止路径遍历、SSRF 和命令注入。
+- Skill 版本唯一记录在自身 `config.yaml:skill_info.version`；公开 API、协议、目录或配置变更同步文档与 `CHANGELOG.md`。
+- 仅将 Skill 或 Bensz 基础设施本身的设计缺陷交给 `bensz-collect-bugs`；先脱敏写入 `~/.bensz-skills/bugs/`，当前任务不中断，只有用户明确要求才公开上报，禁止直接修改用户已安装的 Skill 源码。
+<!-- End of canonical common constraints. -->
+
+### Skill 专属约束
+
+不得超出本 Skill description 和上方流程所声明的范围；不将未验证的信息伪装成确定结论。

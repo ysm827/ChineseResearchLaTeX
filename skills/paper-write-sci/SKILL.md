@@ -3,38 +3,8 @@ name: paper-write-sci
 description: 根据 LaTeX 论文项目撰写、修订和润色 SCI 期刊论文，默认 AI 自主模式，也支持人机协作仅输出审查计划；提供作者风格化写作、数字事实核验、逻辑树多轮审查与 PDF/Word 渲染闭环。⚠️ 不适用：仅改格式/样式参数、纯参考文献管理、图片处理、非论文写作任务。
 metadata:
   author: Bensz Conan
-  short-description: SCI 论文写作与修订 skill（支持风格化、数字审查、逻辑审查）
-  keywords:
-    - paper-write-sci
-    - write-paper-sci
-    - SCI论文写作
-    - 期刊论文
-    - LaTeX论文
-    - 论文润色
-    - 风格化写作
-    - 数字审查
-    - 逻辑审查
 ---
-
 # Paper Write SCI
-
-## BenszAPI 任务工作区
-
-本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
-
-## 与 bensz-collect-bugs 的协作约定
-
-- 因本 skill 设计缺陷导致的 bug，先用 `bensz-collect-bugs` 规范记录到 `~/.bensz-skills/bugs/`，不要直接修改用户本地已安装的 skill 源码；若有 workaround，先记 bug，再继续完成任务
-- 只有用户明确要求“report bensz skills bugs”等公开上报时，才用本地 `gh` 上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull 或 clone 整个仓库
-
-用于根据 LaTeX 论文项目、Figure/Table 注释和用户补充要求，撰写或优化 SCI 期刊论文正文。
-
-执行时优先把确定性步骤交给脚本，把启发式判断留给 AI：
-
-- 初始化工作区、模式归一化、风格选择、计划文件命名：使用 `config.yaml:scripts.prepare_workspace`
-- 长规则块按需从 `references/` 读取；不要把所有参考文档一次性塞进上下文
-
-## 目标
 
 - 写出更像作者本人、而不是通用 AI 模板的论文
 - 控制 SCI 论文语气，少用带冒号的口语化解释句，优先写成自然递进的完整句
@@ -43,7 +13,7 @@ metadata:
 - 默认直接推进修改；当用户需要人机协作时，只输出计划，不直接改论文
 - 除明确约定的对外交付物外，把所有中间文件收敛到 `<paper_dir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/paper-write-sci/{yyyy-mm-dd-hh-mm}/`
 
-## 输入
+### 输入
 
 | 输入项 | 是否必须 | 说明 |
 |---|---|---|
@@ -54,22 +24,23 @@ metadata:
 | 运行模式 | 可选 | 默认值与别名以 `config.yaml:mode` 为准 |
 | 风格 | 可选 | 默认值与可用列表以 `config.yaml:style` 为准 |
 
-## 输出
+## 流程
 
-### `autonomous`
+### 输入
 
-- 直接修改目标正文文件
-- 将分析、审查、渲染日志写入当前运行目录 `<paper_dir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/paper-write-sci/{yyyy-mm-dd-hh-mm}/`
-- 若检测到可用构建链，尝试重新渲染 PDF 和 Word
+按用户请求和配置文件提供必要输入；缺失信息应明确列出并停止依赖该输入的步骤。
 
-### `collaborative`
+### 执行步骤
 
-- 只输出计划文件，文件名模式以 `config.yaml:runtime_outputs.collaborative_plan_pattern` 为准，默认带上本轮 `run_id`
-- 计划中总结论文缺陷、证据、建议修复方案、影响文件和风险
-- 不直接修改论文内容
-- 计划以外的中间文件仍写入当前运行目录 `<paper_dir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/paper-write-sci/{yyyy-mm-dd-hh-mm}/`
+- 因本 skill 设计缺陷导致的 bug，先用 `bensz-collect-bugs` 规范记录到 `~/.bensz-skills/bugs/`，不要直接修改用户本地已安装的 skill 源码；若有 workaround，先记 bug，再继续完成任务
+- 只有用户明确要求“report bensz skills bugs”等公开上报时，才用本地 `gh` 上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull 或 clone 整个仓库
 
-## 模式规则
+用于根据 LaTeX 论文项目、Figure/Table 注释和用户补充要求，撰写或优化 SCI 期刊论文正文。
+
+执行时优先把确定性步骤交给脚本，把启发式判断留给 AI：
+
+- 初始化工作区、模式归一化、风格选择、计划文件命名：使用 `config.yaml:scripts.prepare_workspace`
+- 长规则块按需从 `references/` 读取；不要把所有参考文档一次性塞进上下文
 
 ### `autonomous`（默认）
 
@@ -84,17 +55,6 @@ metadata:
 - 计划仅作为人类审查材料，不对正文落笔
 - 计划文件名、主题 slug、`run_id` 和输出目录都以 `config.yaml:runtime_outputs` 为准
 - 计划内容至少包含：问题、证据、建议动作、影响章节、关联图表、风格锚点、章节分工风险、风险说明
-
-## 中间文件约束
-
-除下列“明确约定的对外交付物”外，其余中间文件都必须放在 `<paper_dir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/paper-write-sci/{yyyy-mm-dd-hh-mm}/`：
-
-- `plans/{collaborative_plan_pattern}`
-- 论文最终构建产物，例如项目已有的 PDF 和 Word 输出
-
-禁止再使用旧目录 `.write-paper-sci/` 与更早的 `.write-paper/`。
-
-## 风格系统
 
 - 风格目录：`references/styles/`
 - 风格模板：`references/styles/style-template.md`
@@ -116,8 +76,6 @@ metadata:
 5. 风格只能改变表达方式，不能改变事实、数字和逻辑
 6. 当任务是“全面润色”“重写 Discussion”或任何明显涉及 `Discussion` 去结果化的请求时，先用 `general-01` 守住章节分工底线，再叠加 `bensz-01` 的作者感；不要让作者风格压过章节职责
 
-## 按需读取的参考文件
-
 优先只读取当前任务所需的参考文件：
 
 - 风格与章节写法：`references/writing-style-guide.md`、`references/styles/bensz-01.md`、`references/styles/general-01.md`
@@ -134,8 +92,6 @@ metadata:
 - 涉及章节串位、`Discussion` 重写或全文终审时，读取 `references/execution-guards.md`
 - 只做风格化润色或图注润色时，优先读取 `writing-style-guide.md` 和目标风格文件
 - 新增风格时，再读取 `references/styles/style-template.md`
-
-## 工作流程
 
 ### 阶段 0：初始化
 
@@ -222,6 +178,53 @@ Additional Information -> Figure Legends -> Supplementary Materials -> Abstract
 
 若存在 Word 导出链，也应尝试执行。构建日志放入当前运行目录的 `render/`。
 
+- 运行准备脚本：`scripts/prepare_workspace.py`
+- 执行护栏：`references/execution-guards.md`
+- 风格模板：`references/styles/style-template.md`
+- `bensz-01`：`references/styles/bensz-01.md`
+- `general-01`：`references/styles/general-01.md`
+- 协作计划模板：`references/collaborative-plan-template.md`
+- 章节写作指南：`references/writing-style-guide.md`
+- 数字审查模板：`references/templates/number-check-template.md`
+- 章节职责审查模板：`references/templates/section-role-check-template.md`
+- `Discussion audit` 模板：`references/templates/discussion-role-check-template.md`
+- 逻辑树模板：`references/templates/logic-tree-template.md`
+- 逻辑审查模板：`references/templates/logic-check-template.md`
+
+### 输出
+
+### `autonomous`
+
+- 直接修改目标正文文件
+- 将分析、审查、渲染日志写入当前运行目录 `<paper_dir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/paper-write-sci/{yyyy-mm-dd-hh-mm}/`
+- 若检测到可用构建链，尝试重新渲染 PDF 和 Word
+
+### `collaborative`
+
+- 只输出计划文件，文件名模式以 `config.yaml:runtime_outputs.collaborative_plan_pattern` 为准，默认带上本轮 `run_id`
+- 计划中总结论文缺陷、证据、建议修复方案、影响文件和风险
+- 不直接修改论文内容
+- 计划以外的中间文件仍写入当前运行目录 `<paper_dir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/paper-write-sci/{yyyy-mm-dd-hh-mm}/`
+
+### 输出管理
+
+本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+
+除下列“明确约定的对外交付物”外，其余中间文件都必须放在 `<paper_dir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/paper-write-sci/{yyyy-mm-dd-hh-mm}/`：
+
+- `plans/{collaborative_plan_pattern}`
+- 论文最终构建产物，例如项目已有的 PDF 和 Word 输出
+
+禁止再使用旧目录 `.write-paper-sci/` 与更早的 `.write-paper/`。
+
+### 校验
+
+完成后执行 Skill 已有的静态检查、脚本验证或人工复核，并记录通过标准。
+
+### 失败与恢复
+
+保留错误证据和已完成产物；仅在输入、环境或外部依赖恢复后从最近的失败步骤重试。
+
 ## 约束
 
 - 不修改 `artifacts/`、`*.sty`、`*.cls`、`*.bst`、`*.bbx`、`*.cbx`、`latexmkrc`
@@ -236,17 +239,18 @@ Additional Information -> Figure Legends -> Supplementary Materials -> Abstract
 - 用户要求“只改某节”时，严格限制改动范围
 - 用户要求协作模式时，严格禁止直接修改论文
 
-## 参考文件
+### 公共硬约束
 
-- 运行准备脚本：`scripts/prepare_workspace.py`
-- 执行护栏：`references/execution-guards.md`
-- 风格模板：`references/styles/style-template.md`
-- `bensz-01`：`references/styles/bensz-01.md`
-- `general-01`：`references/styles/general-01.md`
-- 协作计划模板：`references/collaborative-plan-template.md`
-- 章节写作指南：`references/writing-style-guide.md`
-- 数字审查模板：`references/templates/number-check-template.md`
-- 章节职责审查模板：`references/templates/section-role-check-template.md`
-- `Discussion audit` 模板：`references/templates/discussion-role-check-template.md`
-- 逻辑树模板：`references/templates/logic-tree-template.md`
-- 逻辑审查模板：`references/templates/logic-check-template.md`
+本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
+- 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
+- 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
+- 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。
+- 不记录 API Key、访问令牌、密码、Cookie、环境/凭据文件、私有 Prompt、身份信息、本地用户名、主机名或不必要的大体积原始数据。
+- 文件路径必须规范化并限制在授权项目范围内；外部 URL、子进程和网络访问遵循最小权限，防止路径遍历、SSRF 和命令注入。
+- Skill 版本唯一记录在自身 `config.yaml:skill_info.version`；公开 API、协议、目录或配置变更同步文档与 `CHANGELOG.md`。
+- 仅将 Skill 或 Bensz 基础设施本身的设计缺陷交给 `bensz-collect-bugs`；先脱敏写入 `~/.bensz-skills/bugs/`，当前任务不中断，只有用户明确要求才公开上报，禁止直接修改用户已安装的 Skill 源码。
+<!-- End of canonical common constraints. -->
+
+### Skill 专属约束
+
+不得超出本 Skill description 和上方流程所声明的范围；不将未验证的信息伪装成确定结论。

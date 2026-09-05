@@ -3,44 +3,16 @@ name: nsfc-budget
 description: 当用户明确要求“写/生成 NSFC 预算说明书”“写预算说明”“生成 budget.tex / budget.pdf”“写国自然预算 justification”时使用。基于用户标书正文或补充材料，输出一份可提交的预算说明书 LaTeX 项目并渲染 `budget.pdf`。若用户未指定工作目录，必须暂停并先要求其指定。⚠️ 不适用：用户只是想了解预算原则；用户仅要预算表数字而不写说明书；或用户是 2026 青年 A/B/C 默认包干制且无需预算说明书的场景。
 metadata:
   author: Bensz Conan
-  short-description: NSFC 预算说明书生成与 LaTeX 交付
-  keywords:
-    - nsfc
-    - 预算说明书
-    - budget justification
-    - budget.pdf
-    - latex
-  triggers:
-    - 预算说明书
-    - 预算说明
-    - budget justification
-    - budget.tex
-    - budget.pdf
-config: skills/nsfc-budget/config.yaml
 ---
-
 # NSFC 预算说明书生成器
 
-## BenszAPI 任务工作区
-
-本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
-
-## 与 bensz-collect-bugs 的协作约定
-
-- 当用户环境中出现因本 skill 设计缺陷导致的 bug 时，优先使用 `bensz-collect-bugs` 按规范记录到 `~/.bensz-skills/bugs/`，严禁直接修改用户本地 Claude Code / Codex 中已安装的 skill 源码。
-- 若 AI 仍可通过 workaround 继续完成用户任务，应先记录 bug，再继续完成当前任务。
-- 当用户明确要求“report bensz skills bugs”等公开上报动作时，调用本地 `gh` 与 `bensz-collect-bugs`，仅上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull / clone 整个 bug 仓库。
-
-
-目标：基于标书正文与补充材料，写出一份“经得起财务与学术双重审视”的预算说明书，并交付可编辑 LaTeX 项目与 `budget.pdf`。
-
-## 先做适用性判断
+### 先做适用性判断
 
 - 如果用户**没有指定工作目录**：立即暂停，先让用户给出工作目录。
 - 如果用户只是问“预算怎么写/有哪些原则”，直接回答或给建议，不启动本 skill。
 - 如果用户是 **2026 青年 A/B/C** 且场景属于**包干制**：先明确提醒“通常无需预算说明书”；只有在用户明确说明是历史模板、特定单位要求或预算制场景时才继续。
 
-## 必要输入
+### 必要输入
 
 优先让用户按 `skills/nsfc-budget/references/info_form.md` 提供。最少要拿到：
 
@@ -58,17 +30,22 @@ config: skills/nsfc-budget/config.yaml
 - **预算模式合法值**：见 `config.yaml:rules.budget_modes`。
 - **预算口径合法值**：见 `config.yaml:rules.budget_scopes`。
 
-## 中间产物边界
+## 流程
 
-- 所有中间文件只能放在 `<workdir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/nsfc-budget/`。
-- 不要把草稿、日志、计划、截图、临时 JSON、编译中间文件散落到工作目录其它位置。
-- 最终可见交付物只放在 `<workdir>/<output_dirname>/`（默认值见 `config.yaml:defaults.output_dirname`）。
-- `template_id`、`output_dirname`、`.template.yaml` 里的 `section_files/latex_entry/pdf_name` 都必须是**相对安全路径**；不得包含绝对路径、`.` / `..` 越界段。
-- `output_dirname` 不得指向工作目录根路径，也不得与隐藏工作区 `<workdir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/nsfc-budget/` 重叠。
+### 输入
 
-## 工作流
+按用户请求和配置文件提供必要输入；缺失信息应明确列出并停止依赖该输入的步骤。
 
-### 1. 初始化 run
+### 执行步骤
+
+- 当用户环境中出现因本 skill 设计缺陷导致的 bug 时，优先使用 `bensz-collect-bugs` 按规范记录到 `~/.bensz-skills/bugs/`，严禁直接修改用户本地 Claude Code / Codex 中已安装的 skill 源码。
+- 若 AI 仍可通过 workaround 继续完成用户任务，应先记录 bug，再继续完成当前任务。
+- 当用户明确要求“report bensz skills bugs”等公开上报动作时，调用本地 `gh` 与 `bensz-collect-bugs`，仅上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull / clone 整个 bug 仓库。
+
+
+目标：基于标书正文与补充材料，写出一份“经得起财务与学术双重审视”的预算说明书，并交付可编辑 LaTeX 项目与 `budget.pdf`。
+
+### 初始化 run
 
 先创建隐藏工作区与 `budget_spec.json` 骨架：
 
@@ -82,7 +59,7 @@ python3 skills/nsfc-budget/scripts/init_budget_run.py \
 如用户已给材料路径，可追加多个 `--material <path>`。脚本会把材料快照复制到 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/nsfc-budget/{yyyy-mm-dd-hh-mm}/input/materials/`。
 若同一分钟重复初始化，脚本会自动追加后缀避让目录名冲突，避免 run 目录互相污染。
 
-### 2. 吃透材料，形成“任务-需求-金额-依据”链
+### 吃透材料，形成“任务-需求-金额-依据”链
 
 读取正文与补充材料后，先在隐藏工作区内形成内部判断，再填写 `budget_spec.json`：
 
@@ -93,7 +70,7 @@ python3 skills/nsfc-budget/scripts/init_budget_run.py \
 
 写作原则见：`skills/nsfc-budget/references/budget-writing-rules.md`。
 
-### 3. 填写 `budget_spec.json`
+### 填写 `budget_spec.json`
 
 脚本生成的 `budget_spec.json` 是**唯一结构化中间稿**。至少补齐：
 
@@ -110,7 +87,7 @@ python3 skills/nsfc-budget/scripts/init_budget_run.py \
 - `其他来源资金` 必须写明来源与用途；若无，则显式写“无”
 - 金额、字数上限、容差等数值不得为负数；不合法时优先修正 JSON，而不是带病渲染。
 
-### 4. 渲染、校验、迭代
+### 渲染、校验、迭代
 
 用脚本把 JSON 渲染为 LaTeX 项目，并把校验报告与编译日志留在隐藏目录：
 
@@ -132,7 +109,7 @@ python3 skills/nsfc-budget/scripts/render_budget_project.py \
 
 如校验失败，先修 `budget_spec.json` 再重新运行脚本，直到通过。
 
-### 5. 交付前人工复核
+### 交付前人工复核
 
 交付前必须至少复核这些点：
 
@@ -142,8 +119,6 @@ python3 skills/nsfc-budget/scripts/render_budget_project.py \
 - 是否存在“金额能对上，但逻辑对不上”的隐性漏洞
 - 是否存在“应该写无，却被硬凑了一段”的编造痕迹
 
-## 写作策略
-
 默认采用以下结构化策略：
 
 - **总述从严**：先交代预算遵循政策相符性、目标相关性、经济合理性。
@@ -152,7 +127,13 @@ python3 skills/nsfc-budget/scripts/render_budget_project.py \
 - **金额服务任务**：说明书不是“财务散文”，每一段都要能回到研究方案。
 - **宁缺毋滥**：缺材料时，先保守、先追问、先明确边界；不要补脑。
 
-## 输出
+- `skills/nsfc-budget/references/info_form.md`
+- `skills/nsfc-budget/references/budget-writing-rules.md`
+- `skills/nsfc-budget/scripts/init_budget_run.py`
+- `skills/nsfc-budget/scripts/render_budget_project.py`
+- `skills/nsfc-budget/models/01/.template.yaml`
+
+### 输出
 
 最终输出必须同时包含：
 
@@ -163,10 +144,38 @@ python3 skills/nsfc-budget/scripts/render_budget_project.py \
 
 - `<workdir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/nsfc-budget/{yyyy-mm-dd-hh-mm}/`
 
-## 关键文件
+### 输出管理
 
-- `skills/nsfc-budget/references/info_form.md`
-- `skills/nsfc-budget/references/budget-writing-rules.md`
-- `skills/nsfc-budget/scripts/init_budget_run.py`
-- `skills/nsfc-budget/scripts/render_budget_project.py`
-- `skills/nsfc-budget/models/01/.template.yaml`
+本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+
+### 校验
+
+完成后执行 Skill 已有的静态检查、脚本验证或人工复核，并记录通过标准。
+
+### 失败与恢复
+
+保留错误证据和已完成产物；仅在输入、环境或外部依赖恢复后从最近的失败步骤重试。
+
+## 约束
+
+- 所有中间文件只能放在 `<workdir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/nsfc-budget/`。
+- 不要把草稿、日志、计划、截图、临时 JSON、编译中间文件散落到工作目录其它位置。
+- 最终可见交付物只放在 `<workdir>/<output_dirname>/`（默认值见 `config.yaml:defaults.output_dirname`）。
+- `template_id`、`output_dirname`、`.template.yaml` 里的 `section_files/latex_entry/pdf_name` 都必须是**相对安全路径**；不得包含绝对路径、`.` / `..` 越界段。
+- `output_dirname` 不得指向工作目录根路径，也不得与隐藏工作区 `<workdir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/nsfc-budget/` 重叠。
+
+### 公共硬约束
+
+本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
+- 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
+- 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
+- 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。
+- 不记录 API Key、访问令牌、密码、Cookie、环境/凭据文件、私有 Prompt、身份信息、本地用户名、主机名或不必要的大体积原始数据。
+- 文件路径必须规范化并限制在授权项目范围内；外部 URL、子进程和网络访问遵循最小权限，防止路径遍历、SSRF 和命令注入。
+- Skill 版本唯一记录在自身 `config.yaml:skill_info.version`；公开 API、协议、目录或配置变更同步文档与 `CHANGELOG.md`。
+- 仅将 Skill 或 Bensz 基础设施本身的设计缺陷交给 `bensz-collect-bugs`；先脱敏写入 `~/.bensz-skills/bugs/`，当前任务不中断，只有用户明确要求才公开上报，禁止直接修改用户已安装的 Skill 源码。
+<!-- End of canonical common constraints. -->
+
+### Skill 专属约束
+
+不得超出本 Skill description 和上方流程所声明的范围；不将未验证的信息伪装成确定结论。

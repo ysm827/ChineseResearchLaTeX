@@ -2,30 +2,15 @@
 name: research-literature-interpretation
 description: 像资深研究者带学生一样解读单篇论文：提炼问题、机制、证据强弱、边界与可迁移启发。用户提供 PDF、arXiv/DOI/出版社链接、本地论文或正文片段并希望理解、批判、复现或学习时使用；不用于论文发现、多论文综述或只改写摘要。
 metadata:
-  author: "Bensz Conan"
-  keywords:
-    - research-literature-interpretation
-    - paper reading
-    - research explanation
+  author: Bensz Conan
 ---
-
 # Research Literature Interpretation
-
-## 与 bensz-collect-bugs 的协作约定
-
-- 仅将本 Skill 的设计缺陷（流程漏判、输入契约不完整或环境假设错误）视为可上报 bug；用户数据错误、第三方服务抖动、用户主动改源码和模型偶发波动不属于此范围。
-- 发现设计缺陷时先脱敏记录到 `~/.bensz-skills/bugs/`，当前任务继续；只有用户明确要求公开上报时，才使用本机 `gh api` 直传，不 clone 仓库。
-- 不收集用户名、主机名、工作目录、密钥、令牌、Cookie 或其它无关隐私；不得直接修改用户本地已安装 Skill 的源代码来“顺手修 bug”。
-
-版本唯一来源为同目录 `config.yaml:skill_info.version`；本文件只描述稳定工作契约，不重复易变配置。
-
-## 目标
 
 把单篇论文压缩成读者能复述、质疑和迁移的解释链：旧方法为何受限，作者改变了什么，机制为何可能有效，证据支持到何种强度，代价和失效条件是什么。
 
 主动取舍比篇幅重要。页码、章节和图表只服务复核，不支配叙事。
 
-## 范围与文件边界
+### 范围与文件边界
 
 - 仅处理单篇论文；发现、筛选和去重交给 `research-literature-radar`，多论文综合交给综述技能。
 - 确认标题、作者、年份、venue、版本、DOI/arXiv ID、一手 URL、访问日期和可读范围。版本冲突并列记录，不擅自裁决。
@@ -33,7 +18,19 @@ metadata:
 - 只用合法可访问的一手材料和可靠跟进来源；不绕过访问限制，不执行未知代码。区分静态阅读、实际运行和作者自报结果。
 - 默认写入 `papers/<friendly-id>/<friendly-id>.md`。已有笔记默认修订或追加，不覆盖用户内容；不改 `raw/` 或 `.bensz-api/research-literature-radar/catalog.jsonl`。中间材料放本轮 `.bensz-api/`。
 
-## 工作流
+## 流程
+
+### 输入
+
+按用户请求和配置文件提供必要输入；缺失信息应明确列出并停止依赖该输入的步骤。
+
+### 执行步骤
+
+- 仅将本 Skill 的设计缺陷（流程漏判、输入契约不完整或环境假设错误）视为可上报 bug；用户数据错误、第三方服务抖动、用户主动改源码和模型偶发波动不属于此范围。
+- 发现设计缺陷时先脱敏记录到 `~/.bensz-skills/bugs/`，当前任务继续；只有用户明确要求公开上报时，才使用本机 `gh api` 直传，不 clone 仓库。
+- 不收集用户名、主机名、工作目录、密钥、令牌、Cookie 或其它无关隐私；不得直接修改用户本地已安装 Skill 的源代码来“顺手修 bug”。
+
+版本唯一来源为同目录 `config.yaml:skill_info.version`；本文件只描述稳定工作契约，不重复易变配置。
 
 ### 确定读者要做的判断
 
@@ -79,8 +76,6 @@ python3 scripts/validate_notes.py --style <note>
 
 机械检查不能替代科学复核。
 
-## 内容门
-
 交付前确认：
 
 - 首屏可复述旧瓶颈、关键改变、最强证据和最大边界。
@@ -94,8 +89,6 @@ python3 scripts/validate_notes.py --style <note>
 
 答不上来就继续取证、收缩结论或列为未解决。只有内容门全部通过才能设 `status: complete`。
 
-## 有限迭代
-
 用户要求自我改进或任务风险较高时，最多三轮，每轮只修最影响判断的问题，并在任务工作区记录“发现—删改—复查—仍未知”：
 
 1. 主线：让独立 agent 用两句话复述；若成了目录/摘要，重写开头和机制。
@@ -104,6 +97,38 @@ python3 scripts/validate_notes.py --style <note>
 
 通过内容门即停止；仍不足只做一次定向修订并披露未知。
 
-## 来源与安全
+### 输出
+
+输出 Skill description 所承诺的交付物，并明确格式、路径和失败返回形式。
+
+### 输出管理
+
+临时产物写入任务工作区，正式交付物写入项目约定位置；未经授权不覆盖或删除已有文件。
+
+### 校验
+
+完成后执行 Skill 已有的静态检查、脚本验证或人工复核，并记录通过标准。
+
+### 失败与恢复
+
+保留错误证据和已完成产物；仅在输入、环境或外部依赖恢复后从最近的失败步骤重试。
+
+## 约束
 
 结尾列一手 URL、访问日期、阅读版本/范围和可靠跟进链接；没有就说明。来源层只记录事实和核查路径，不代替解释。不要复制整篇论文、泄露密钥或用户资料；删减不得移除会改变判断的前提、对照、反例或证据边界。
+
+### 公共硬约束
+
+本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
+- 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
+- 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
+- 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。
+- 不记录 API Key、访问令牌、密码、Cookie、环境/凭据文件、私有 Prompt、身份信息、本地用户名、主机名或不必要的大体积原始数据。
+- 文件路径必须规范化并限制在授权项目范围内；外部 URL、子进程和网络访问遵循最小权限，防止路径遍历、SSRF 和命令注入。
+- Skill 版本唯一记录在自身 `config.yaml:skill_info.version`；公开 API、协议、目录或配置变更同步文档与 `CHANGELOG.md`。
+- 仅将 Skill 或 Bensz 基础设施本身的设计缺陷交给 `bensz-collect-bugs`；先脱敏写入 `~/.bensz-skills/bugs/`，当前任务不中断，只有用户明确要求才公开上报，禁止直接修改用户已安装的 Skill 源码。
+<!-- End of canonical common constraints. -->
+
+### Skill 专属约束
+
+不得超出本 Skill description 和上方流程所声明的范围；不将未验证的信息伪装成确定结论。

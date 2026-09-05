@@ -3,29 +3,10 @@ name: paper-know-journal
 description: 当用户给出期刊/杂志名并希望了解投稿要求、投稿形式/格式清单、期刊官网信息、社区评价、审稿速度、费用、文章类型、格式细节或“这个 journal 怎么投/是否靠谱/投稿指南调研”时必须使用。联网核验期刊官网与社区评测，默认把全部中间文件隔离到当前工作目录的 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/paper-know-journal/`，最终只交付 `KnowJournal-{杂志名}.md`。⚠️ 不适用：用户要根据 manuscript 选择投稿期刊（用 paper-select-journal）、写论文正文、下载全文 PDF，或只问一个无需成稿的简单事实。
 metadata:
   author: Bensz Conan
-  short-description: 按期刊名生成投稿要求与社区评价调研报告
-  keywords:
-    - paper-know-journal
-    - 期刊调研
-    - 投稿指南
-    - 投稿要求
-    - 投稿形式要求
-    - 社区评价
-    - journal guide
 ---
-
 # paper-know-journal
 
-## BenszAPI 任务工作区
-
-本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
-
-## 与 bensz-collect-bugs 的协作约定
-
-- 因本 skill 设计缺陷导致的 bug，先用 `bensz-collect-bugs` 规范记录到 `~/.bensz-skills/bugs/`，不要直接修改用户本地已安装的 skill 源码；若有 workaround，先记 bug，再继续完成任务。
-- 只有用户明确要求“report bensz skills bugs”等公开上报时，才用本地 `gh` 上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull / clone 整个仓库。
-
-## 输入与输出
+### 输入与输出
 
 输入：期刊/杂志名；可附加输出目录、工作区、关注方向、目标文体/文章类型（如 Article、Original Research、Review、Brief Communication、Case Report、Letter）或目标 manuscript 类型。
 
@@ -35,7 +16,16 @@ metadata:
 
 测试区：轻量验证用 `./tests/paper-know-journal/`；测试证据不得混入最终报告。
 
-## 标准工作流
+## 流程
+
+### 输入
+
+按用户请求和配置文件提供必要输入；缺失信息应明确列出并停止依赖该输入的步骤。
+
+### 执行步骤
+
+- 因本 skill 设计缺陷导致的 bug，先用 `bensz-collect-bugs` 规范记录到 `~/.bensz-skills/bugs/`，不要直接修改用户本地已安装的 skill 源码；若有 workaround，先记 bug，再继续完成任务。
+- 只有用户明确要求“report bensz skills bugs”等公开上报时，才用本地 `gh` 上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull / clone 整个仓库。
 
 ### 初始化
 
@@ -117,10 +107,42 @@ python3 /path/to/paper-know-journal/scripts/validate_report.py \
 
 验证通过后告知用户：最终文件路径、主要来源数量、无法确认的信息和残余风险。
 
-## 失败处理
+### 输出
+
+输出 Skill description 所承诺的交付物，并明确格式、路径和失败返回形式。
+
+### 输出管理
+
+本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+
+### 校验
+
+完成后执行 Skill 已有的静态检查、脚本验证或人工复核，并记录通过标准。
+
+### 失败与恢复
 
 - 找不到官网：先用出版商、ISSN、NLM Catalog、DOAJ、Crossref、期刊投稿系统交叉定位；仍不能确认时停止成稿并说明需要用户确认目标期刊。
 - 同名期刊冲突：列出候选期刊、出版社和 ISSN，先让用户确认。
 - 社区评价稀少：明确写“未找到足够社区评价”，不要编造体验。
 - 官方信息与社区信息冲突：以官方政策为准，社区信息作为体验线索，并标注冲突点。
 - 网站无法访问：记录访问失败、尝试替代官方页面或缓存摘要；关键政策无法核验时在报告中列为待确认。
+
+## 约束
+
+遵守以下公共约束，并执行本 Skill 的专属边界。
+
+### 公共硬约束
+
+本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
+- 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
+- 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
+- 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。
+- 不记录 API Key、访问令牌、密码、Cookie、环境/凭据文件、私有 Prompt、身份信息、本地用户名、主机名或不必要的大体积原始数据。
+- 文件路径必须规范化并限制在授权项目范围内；外部 URL、子进程和网络访问遵循最小权限，防止路径遍历、SSRF 和命令注入。
+- Skill 版本唯一记录在自身 `config.yaml:skill_info.version`；公开 API、协议、目录或配置变更同步文档与 `CHANGELOG.md`。
+- 仅将 Skill 或 Bensz 基础设施本身的设计缺陷交给 `bensz-collect-bugs`；先脱敏写入 `~/.bensz-skills/bugs/`，当前任务不中断，只有用户明确要求才公开上报，禁止直接修改用户已安装的 Skill 源码。
+<!-- End of canonical common constraints. -->
+
+### Skill 专属约束
+
+不得超出本 Skill description 和上方流程所声明的范围；不将未验证的信息伪装成确定结论。

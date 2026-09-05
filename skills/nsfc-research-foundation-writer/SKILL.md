@@ -1,42 +1,12 @@
 ---
 name: nsfc-research-foundation-writer
-version: 0.1.2
 description: '当用户明确要求"写/改研究基础""研究基础+工作条件+风险应对编排"时使用。为 NSFC 正文"（三）研究基础"写作/重构，并同步编排"工作条件"和"研究风险应对"，用证据链证明项目可行、资源条件对位研究内容、风险预案可执行。'
-author: Bensz Conan
 metadata:
   author: Bensz Conan
-  short-description: NSFC（研究基础+工作条件+风险应对）编排写作
-  keywords:
-    - nsfc-research-foundation-writer
-    - 研究基础
-    - 可行性分析
-    - 工作条件
-    - 平台团队
-    - 风险应对
-  triggers:
-    - 研究基础
-    - 前期基础
-    - 可行性
-    - 工作条件
-    - 平台
-    - 风险应对
-config: skills/nsfc-research-foundation-writer/config.yaml
-references: skills/nsfc-research-foundation-writer/references/
 ---
-
 # NSFC（三）研究基础编排写作器
 
-## BenszAPI 任务工作区
-
-本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
-
-## 与 bensz-collect-bugs 的协作约定
-
-- 当用户环境中出现因本 skill 设计缺陷导致的 bug 时，优先使用 `bensz-collect-bugs` 按规范记录到 `~/.bensz-skills/bugs/`，严禁直接修改用户本地 Claude Code / Codex 中已安装的 skill 源码。
-- 若 AI 仍可通过 workaround 继续完成用户任务，应先记录 bug，再继续完成当前任务。
-- 当用户明确要求“report bensz skills bugs”等公开上报动作时，调用本地 `gh` 与 `bensz-collect-bugs`，仅上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull / clone 整个 bug 仓库。
-
-## 目标输出（契约）
+### 目标输出（契约）
 
 - **写入落点（2 个文件）**：
   - `extraTex/3.1.研究基础.tex`（包含“研究风险的应对措施”）
@@ -44,24 +14,28 @@ references: skills/nsfc-research-foundation-writer/references/
 - **禁止改动**：`main.tex`、`extraTex/@config.tex`、任何 `.cls/.sty`
 - **核心目标**：用“证据链 + 条件对位 + 风险预案”回答评审的三个问题：你做过吗？你做得成吗？出问题你怎么兜底？
 
-## 参数与输出模式（建议显式提供）
+### 参数与输出模式（建议显式提供）
 
 - `project_root`：标书项目根目录（如 `projects/NSFC_Young`）
 - `output_mode`（默认 `apply`）：
   - `preview`：只输出两段可复制的 LaTeX 正文草稿（并标注应写入的目标文件路径），不写入文件
   - `apply`：仅写入两份目标文件（见“目标输出”），不触碰其他文件
 
-## 必需输入（最小信息表）
+### 必需输入（最小信息表）
 
 - 若用户未提供，请先收集/补全：[references/info_form.md](references/info_form.md)
 
-## 写入安全约束（必须遵守）
+## 流程
 
-1. 仅编辑两份 `extraTex/3.*.tex` 文件；不得修改 `main.tex`、`extraTex/@config.tex`、任何 `.cls/.sty`
-2. 目标文件若已包含标题命令（如 `\\subsection{...}` / `\\subsubsection{...}`），**只替换正文内容**，不改标题与结构层级
-3. 信息不全时先提问补齐；不得捏造论文题目/期刊/专利号/样本量/指标等“看起来像真的”细节
+### 输入
 
-## 工作流（按顺序执行）
+按用户请求和配置文件提供必要输入；缺失信息应明确列出并停止依赖该输入的步骤。
+
+### 执行步骤
+
+- 当用户环境中出现因本 skill 设计缺陷导致的 bug 时，优先使用 `bensz-collect-bugs` 按规范记录到 `~/.bensz-skills/bugs/`，严禁直接修改用户本地 Claude Code / Codex 中已安装的 skill 源码。
+- 若 AI 仍可通过 workaround 继续完成用户任务，应先记录 bug，再继续完成当前任务。
+- 当用户明确要求“report bensz skills bugs”等公开上报动作时，调用本地 `gh` 与 `bensz-collect-bugs`，仅上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull / clone 整个 bug 仓库。
 
 1. **定位项目与目标文件**：
    - 验证 `project_root` 是否存在，不存在时报错并提示用户指定正确路径
@@ -103,28 +77,6 @@ references: skills/nsfc-research-foundation-writer/references/
      - 如果发现不一致，标记为 `[需补充：XXX]` 并提示用户
      - 如果用户未提供 `2.1` 或 `2.3`，跳过对应校验并提示用户
 
-## 验收标准（Definition of Done）
-
-### 质量契约验证（来自 config.yaml）
-- 研究基础必须覆盖：
-  - 与本项目相关的研究积累（证据链）
-  - 已取得的阶段性成果（可核验）
-  - 可行性要点（理论/技术/团队/条件）
-  - 研究风险与应对措施（显式写出）
-- 工作条件必须覆盖：
-  - 已具备条件（平台/数据/样本/算力/团队/合规）
-  - 尚缺条件与解决途径（时间/预算/合作/采购/替代方案）
-
-### 详细检查清单
-见：[references/dod_checklist.md](references/dod_checklist.md)
-
-### 可选脚本自检（只读）
-
-- 仅校验 skill 自身结构一致性：`python3 skills/nsfc-research-foundation-writer/scripts/validate_skill.py`
-- 同时检查某个项目的输出文件（存在性 + 轻量内容启发式）：`python3 skills/nsfc-research-foundation-writer/scripts/run_checks.py --project-root <你的project_root>`
-
-## 常见问题与边缘情况
-
 ### Q1: 项目目录中没有 `extraTex/` 目录怎么办？
 **A**: 建议先确认 `project_root` 指向正确的标书项目根目录；若确实缺少 `extraTex/`，请手动创建：
 ```bash
@@ -145,6 +97,58 @@ mkdir -p "<你的project_root>/extraTex"
 ### Q5: 我的信息表内容很少，能生成完整的研究基础吗？
 **A**: 可以。AI 会根据你提供的信息生成内容，并在不确定的地方使用占位符（如 `[请补充：XXX]`），请你后续补全。
 
-## 变更记录
-
 - 本技能的变更历史记录在本目录的 `CHANGELOG.md`，并同步到根级 `CHANGELOG.md`；`SKILL.md` 仅维护“AI 执行规范”。
+
+### 输出
+
+输出 Skill description 所承诺的交付物，并明确格式、路径和失败返回形式。
+
+### 输出管理
+
+本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+
+### 校验
+
+### 质量契约验证（来自 config.yaml）
+- 研究基础必须覆盖：
+  - 与本项目相关的研究积累（证据链）
+  - 已取得的阶段性成果（可核验）
+  - 可行性要点（理论/技术/团队/条件）
+  - 研究风险与应对措施（显式写出）
+- 工作条件必须覆盖：
+  - 已具备条件（平台/数据/样本/算力/团队/合规）
+  - 尚缺条件与解决途径（时间/预算/合作/采购/替代方案）
+
+### 详细检查清单
+见：[references/dod_checklist.md](references/dod_checklist.md)
+
+### 可选脚本自检（只读）
+
+- 仅校验 skill 自身结构一致性：`python3 skills/nsfc-research-foundation-writer/scripts/validate_skill.py`
+- 同时检查某个项目的输出文件（存在性 + 轻量内容启发式）：`python3 skills/nsfc-research-foundation-writer/scripts/run_checks.py --project-root <你的project_root>`
+
+### 失败与恢复
+
+保留错误证据和已完成产物；仅在输入、环境或外部依赖恢复后从最近的失败步骤重试。
+
+## 约束
+
+1. 仅编辑两份 `extraTex/3.*.tex` 文件；不得修改 `main.tex`、`extraTex/@config.tex`、任何 `.cls/.sty`
+2. 目标文件若已包含标题命令（如 `\\subsection{...}` / `\\subsubsection{...}`），**只替换正文内容**，不改标题与结构层级
+3. 信息不全时先提问补齐；不得捏造论文题目/期刊/专利号/样本量/指标等“看起来像真的”细节
+
+### 公共硬约束
+
+本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
+- 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
+- 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
+- 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。
+- 不记录 API Key、访问令牌、密码、Cookie、环境/凭据文件、私有 Prompt、身份信息、本地用户名、主机名或不必要的大体积原始数据。
+- 文件路径必须规范化并限制在授权项目范围内；外部 URL、子进程和网络访问遵循最小权限，防止路径遍历、SSRF 和命令注入。
+- Skill 版本唯一记录在自身 `config.yaml:skill_info.version`；公开 API、协议、目录或配置变更同步文档与 `CHANGELOG.md`。
+- 仅将 Skill 或 Bensz 基础设施本身的设计缺陷交给 `bensz-collect-bugs`；先脱敏写入 `~/.bensz-skills/bugs/`，当前任务不中断，只有用户明确要求才公开上报，禁止直接修改用户已安装的 Skill 源码。
+<!-- End of canonical common constraints. -->
+
+### Skill 专属约束
+
+不得超出本 Skill description 和上方流程所声明的范围；不将未验证的信息伪装成确定结论。

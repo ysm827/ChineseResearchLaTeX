@@ -3,23 +3,27 @@ name: nsfc-length-aligner
 description: 基于国自然标书篇幅预算标准；检查目标标书篇幅并总结差距；给出针对性优化建议；在尽量不改变原意的前提下扩写/压缩到达标。
 metadata:
   author: Bensz Conan
-  short-description: 国自然标书篇幅对齐（检查→差距→建议→改写→复检）
-  keywords:
-    - nsfc-length-aligner
-    - nsfc
-    - length
-    - budget
-    - align
-    - wordcount
 ---
-
 # nsfc-length-aligner
 
-## BenszAPI 任务工作区
+### 适用场景
 
-本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+- 你有一份国自然标书，想快速判断是否“某些部分偏短/偏长”
+- 你需要按模板的硬性篇幅要求（页数/字数/字符数）对齐
+- 你希望尽量不改变原意地扩写或压缩（保持论证主线与证据链）
 
-## 与 bensz-collect-bugs 的协作约定
+### 不适用场景
+
+- 仅需要“统计字数”而不关心预算与改写闭环（可用更简单的脚本即可）
+- 标书不在本地（无法提供文本/文件/路径）
+
+## 流程
+
+### 输入
+
+按用户请求和配置文件提供必要输入；缺失信息应明确列出并停止依赖该输入的步骤。
+
+### 执行步骤
 
 - 当用户环境中出现因本 skill 设计缺陷导致的 bug 时，优先使用 `bensz-collect-bugs` 按规范记录到 `~/.bensz-skills/bugs/`，严禁直接修改用户本地 Claude Code / Codex 中已安装的 skill 源码。
 - 若 AI 仍可通过 workaround 继续完成用户任务，应先记录 bug，再继续完成当前任务。
@@ -28,27 +32,14 @@ metadata:
 
 目标：把“篇幅”从主观感觉变成可量化、可闭环的指标，并围绕预算（budget）指导扩写/压缩。
 
-## 适用场景
-
-- 你有一份国自然标书，想快速判断是否“某些部分偏短/偏长”
-- 你需要按模板的硬性篇幅要求（页数/字数/字符数）对齐
-- 你希望尽量不改变原意地扩写或压缩（保持论证主线与证据链）
-
-## 不适用场景
-
-- 仅需要“统计字数”而不关心预算与改写闭环（可用更简单的脚本即可）
-- 标书不在本地（无法提供文本/文件/路径）
-
-## 工作流（强烈建议按顺序执行）
-
-### 0) 锁定隐藏工作区（先做）
+### 锁定隐藏工作区（先做）
 
 - 以标书工作目录为根，统一使用 `<workdir>/.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/nsfc-length-aligner/` 托管所有中间文件与报告
 - 不要把 `length_report.*`、临时分析稿、计划文件写到工作目录根层或仓库其他位置
 - 若显式传入 `--out-dir`，优先使用相对路径 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/nsfc-length-aligner`；脚本会将**相对** `--out-dir` 解析到 `--input` 对应的工作目录，而不是 shell 当前目录
 - 若工作目录本身不可写，应先切换到可写副本后再运行；不要为了省事把中间文件散落到项目外部
 
-### 1) 需求确认（预算口径）
+### 需求确认（预算口径）
 
 先确认你要对齐的“硬标准”是什么：
 
@@ -59,7 +50,7 @@ metadata:
 
 说明：本 skill 默认使用 `config.yaml:length_standard` 的**示例口径（已对齐 2026 调研建议）**。你应按当年指南/模板校对后再使用。
 
-### 2) 运行篇幅检查（确定性）
+### 运行篇幅检查（确定性）
 
 对目标标书目录（或单文件）运行检查脚本，生成报告：
 
@@ -90,7 +81,7 @@ python3 scripts/check_length.py --input <目标标书路径> --config config.yam
 
 运行完成后，**必须**读取 `length_report.md`（必要时辅助读取 `length_report.json`），将“文件级偏差表 +（可选）章节级统计”作为步骤 3 的输入。
 
-### 3) 解读差距（差在什么地方）
+### 解读差距（差在什么地方）
 
 基于报告做 3 件事：
 
@@ -107,7 +98,7 @@ python3 scripts/check_length.py --input <目标标书路径> --config config.yam
 
 参考：`references/MEANING_PRESERVING_REWRITE_RUBRIC.md`
 
-### 4) 扩写/压缩（尽量不改变原意）
+### 扩写/压缩（尽量不改变原意）
 
 #### 扩写策略（偏短时）
 
@@ -122,8 +113,6 @@ python3 scripts/check_length.py --input <目标标书路径> --config config.yam
 - 结构化改写：把长段拆成要点（不改变事实顺序）
 
 > ⚠️ 改写完成后，**必须执行步骤 5 复检**，确认偏差已消除。未复检视为未完成。
-
-## 2026 三部分“该瘦/该厚”清单（用于排优先级）
 
 用法（把“静态建议”变成“按差距触发”）：
 - 先看报告里对应文件的偏差 `delta`：`+N` 表示超长（优先“该瘦”）；`-N` 表示偏短（优先“该厚”）；`OK` 表示该部分无需为了预算而改动
@@ -141,7 +130,7 @@ python3 scripts/check_length.py --input <目标标书路径> --config config.yam
 - 该瘦：无关成果堆砌、过度铺垫背景
 - 该厚：强相关预实验数据、核心技术能力、平台条件（与研究内容对位）
 
-### 5) 复检闭环
+### 复检闭环
 
 改完必须再次运行脚本，确认“达标且不超标”：
 
@@ -149,15 +138,45 @@ python3 scripts/check_length.py --input <目标标书路径> --config config.yam
 python3 scripts/check_length.py --input <目标标书路径> --config config.yaml
 ```
 
-## 格式红线（2026+ 常见）
-
 - 不缩小字体、不缩小行距来“挤页数”（页数要求是评审风险点）
 - 不顶格写到 30 页：建议 ≤28 页留缓冲
 - 若当年指南要求声明生成式 AI 使用情况：务必按要求如实说明（合规项）
 
-## 约定与输出格式
+### 输出
 
 - 报告以“文件级 +（可选）章节级”呈现
 - 预算以 `config.yaml:length_standard` 为唯一真相来源
 - 中间文件统一托管到 `config.yaml:output_settings.intermediate_dir`（默认 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/nsfc-length-aligner`）
 - 所有改写应遵循“最小改动、保持原意”的准则（见 references）
+
+### 输出管理
+
+本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+
+### 校验
+
+完成后执行 Skill 已有的静态检查、脚本验证或人工复核，并记录通过标准。
+
+### 失败与恢复
+
+保留错误证据和已完成产物；仅在输入、环境或外部依赖恢复后从最近的失败步骤重试。
+
+## 约束
+
+遵守以下公共约束，并执行本 Skill 的专属边界。
+
+### 公共硬约束
+
+本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
+- 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
+- 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
+- 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。
+- 不记录 API Key、访问令牌、密码、Cookie、环境/凭据文件、私有 Prompt、身份信息、本地用户名、主机名或不必要的大体积原始数据。
+- 文件路径必须规范化并限制在授权项目范围内；外部 URL、子进程和网络访问遵循最小权限，防止路径遍历、SSRF 和命令注入。
+- Skill 版本唯一记录在自身 `config.yaml:skill_info.version`；公开 API、协议、目录或配置变更同步文档与 `CHANGELOG.md`。
+- 仅将 Skill 或 Bensz 基础设施本身的设计缺陷交给 `bensz-collect-bugs`；先脱敏写入 `~/.bensz-skills/bugs/`，当前任务不中断，只有用户明确要求才公开上报，禁止直接修改用户已安装的 Skill 源码。
+<!-- End of canonical common constraints. -->
+
+### Skill 专属约束
+
+不得超出本 Skill description 和上方流程所声明的范围；不将未验证的信息伪装成确定结论。

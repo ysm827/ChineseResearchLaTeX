@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+- 修复项目内 27 个 `SKILL.md` 的开头标题结构：移除重复的 Skill slug 标题和错误插入的 `## 目标`，保留原有正文标题；同时增强 `scripts/validate_skill_docs.py` 对该类结构回归的检查。
+
+- 精简根目录 `AGENTS.md`：移除失效或过细的模板目录说明，保留责任分层、任务工作区、BAC 贡献记录、Skill 开发、验证、文档同步和安全边界等真正影响协作的规则。
+
+- 按当前 Skill 文档规范统一 `skills/*/SKILL.md`：frontmatter 仅保留 `name` 与 `description`，移除标题数字前缀和重复元数据，保持现有触发语义与执行正文不变；新增 `scripts/validate_skill_docs.py` 作为 500 行、frontmatter、标题结构和版本标记校验入口。
+
 ### Changed（变更）
 
 - `research-idea` 升级至 v0.2.2：默认研究想法报告统一写入 `./docs/ideas/`，并将具体报告文件名从 Skill 触发描述移至输出规范，避免根目录污染与触发元数据冗余。

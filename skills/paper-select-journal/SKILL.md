@@ -3,22 +3,10 @@ name: paper-select-journal
 description: 当用户明确要求“推荐投稿期刊”“帮我的论文选 SCI 杂志”“这篇 manuscript 适合投哪些 journal”“期刊匹配/选刊/投稿建议”时必须使用。适用于用户提供全文、摘要、Markdown、LaTeX、PDF、Word 或混合材料的场景；本 skill 会基于 manuscript 与用户偏好，先用内置 `2023IF.xlsx` 做最小硬过滤生成候选池，再由宿主模型自主规划 Set1/Set2/Set3，并联网核验 scope / 质量 / 近 3 个月 PubMed 论文，最后输出 1 份按推荐度排序的 Markdown 选刊报告。⚠️ 不适用：用户只是想润色论文、只想翻译摘要、或只问某个单一期刊的官网信息而不需要系统选刊。
 metadata:
   author: Bensz Conan
-  short-description: 基于 manuscript + 2023IF + 实时联网核验的 SCI 选刊 skill
-  keywords:
-    - paper-select-journal
-    - 选刊
-    - 投稿期刊推荐
-    - SCI journal selection
-    - manuscript matching
 ---
-
 # Paper Select Journal
 
-## BenszAPI 任务工作区
-
-本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
-
-## 核心原则
+### 核心原则
 
 - 当前信息必须实时核验：scope、官网、业内认可度、中科院分区、近 3 个月论文都属于时效性信息，不能靠旧记忆。
 - 中间文件只允许落在当前工作目录下的 `.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/paper-select-journal/` 隐藏目录；用户若明确指定其他目录，才可覆盖默认值。
@@ -27,7 +15,7 @@ metadata:
 - 不能推荐明显预警、垃圾期刊或影响因子低于 `3` 的期刊；若确实保留低于 `3` 的例外，必须写明“为何它仍是领域内人类专家认可的稳妥选择”。
 - 宁可少报，也不要为了凑满 10 个而硬凑。
 
-## 输入与工作区
+### 输入与工作区
 
 - 用户需求可选，manuscript 必选。
 - manuscript 可来自粘贴的标题 / 摘要 / 全文片段，或本地 `.md`、`.txt`、`.tex`、`.pdf`、`.docx`，也可混合提供。
@@ -49,9 +37,15 @@ python3 <skill_root>/scripts/init_workspace.py --project-root .
 
 后续所有中间文件都必须留在该 run 目录内。
 
-## 工作流
+## 流程
 
-### 1. 先写 manuscript 画像
+### 输入
+
+按用户请求和配置文件提供必要输入；缺失信息应明确列出并停止依赖该输入的步骤。
+
+### 执行步骤
+
+### 先写 manuscript 画像
 
 完整理解论文后，把结果写入 `analysis/manuscript_profile.json`。
 
@@ -67,7 +61,7 @@ python3 <skill_root>/scripts/init_workspace.py --project-root .
 如果用户偏好复杂，优先把偏好写成自然语言放进 `target_journal_brief` 或 `notes`，不要为了脚本凑很多硬编码线索。
 如果确实需要保留低 IF 的人工例外期刊，只能作为后续人工补录候选，并且必须在最终报告里解释“为什么它虽然低于阈值，仍是领域内稳妥选择”。
 
-### 2. 用内置 `2023IF.xlsx` 做 Set1 候选池
+### 用内置 `2023IF.xlsx` 做 Set1 候选池
 
 内置目录：`assets/journal_catalog/2023IF.xlsx`
 
@@ -93,7 +87,7 @@ python3 <skill_root>/scripts/shortlist_journals.py \
 不要把这一步输出误解为“已经按语义排好序的最终 shortlist”。
 你必须读取该候选池，再结合 manuscript 自主规划真正值得进入 Set2 的期刊。
 
-### 3. 联网核验 scope、官网、分区与质量，得到 Set2
+### 联网核验 scope、官网、分区与质量，得到 Set2
 
 根据 `candidates/set1_candidates.json` 与 manuscript 画像，自主决定先核验哪些候选，并逐个联网核验：
 
@@ -182,7 +176,7 @@ python3 <skill_root>/scripts/fetch_pubmed_recent.py \
 - `low`
 - `none`
 
-### 5. 形成最终推荐 JSON
+### 形成最终推荐 JSON
 
 基于 `analysis/set3_similarity_review.json`，把最终最多 `10` 个期刊写入 `analysis/final_recommendations.json`。
 
@@ -198,7 +192,7 @@ python3 <skill_root>/scripts/fetch_pubmed_recent.py \
 - 最近 3 个月类似主题论文
 - 每篇证据论文的 AI `relevance`
 
-### 6. 渲染最终 Markdown 报告
+### 渲染最终 Markdown 报告
 
 运行：
 
@@ -214,13 +208,9 @@ python3 <skill_root>/scripts/render_report.py \
 
 如需 `--output` 覆盖默认文件名，也只能写到当前 run 目录内部，不能把最终 Markdown 报告写到隐藏工作区之外。
 
-## 最终报告要求
-
 - 所有期刊写在同一个 Markdown 文件里
 - 每个期刊使用 `#` 层级，下面按需用 `##`、`###`
 - 每个期刊都要写明：影响因子、中科院小类及分区、业内认可度、官方网站、推荐理由，以及最近 3 个月类似主题论文表格和 AI 相关性说明
-
-## 决策规则
 
 - scope 不匹配，再高 IF 也不要强推
 - 有明显预警 / 垃圾期刊风险，直接淘汰
@@ -229,14 +219,46 @@ python3 <skill_root>/scripts/render_report.py \
 - 中科院分区无法可靠核验时，优先换成信息更透明的候选
 - 用户未明确偏好时，自主选择最稳妥方案，不要把提问变成阻塞
 
-## 命令路径说明
-
 - ` <skill_root> ` 表示当前 skill 的真实安装目录。
 - 不要假设用户当前工作目录里一定有 `paper-select-journal/` 源码副本。
 - 如果你已经处在 skill 根目录，也可以直接运行 `python3 scripts/...`。
 
-## 参考文件
-
 - `references/manuscript-profile.md`
 - `references/journal-quality-checklist.md`
 - `references/report-schema.md`
+
+### 输出
+
+输出 Skill description 所承诺的交付物，并明确格式、路径和失败返回形式。
+
+### 输出管理
+
+本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+
+### 校验
+
+完成后执行 Skill 已有的静态检查、脚本验证或人工复核，并记录通过标准。
+
+### 失败与恢复
+
+保留错误证据和已完成产物；仅在输入、环境或外部依赖恢复后从最近的失败步骤重试。
+
+## 约束
+
+遵守以下公共约束，并执行本 Skill 的专属边界。
+
+### 公共硬约束
+
+本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
+- 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
+- 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
+- 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。
+- 不记录 API Key、访问令牌、密码、Cookie、环境/凭据文件、私有 Prompt、身份信息、本地用户名、主机名或不必要的大体积原始数据。
+- 文件路径必须规范化并限制在授权项目范围内；外部 URL、子进程和网络访问遵循最小权限，防止路径遍历、SSRF 和命令注入。
+- Skill 版本唯一记录在自身 `config.yaml:skill_info.version`；公开 API、协议、目录或配置变更同步文档与 `CHANGELOG.md`。
+- 仅将 Skill 或 Bensz 基础设施本身的设计缺陷交给 `bensz-collect-bugs`；先脱敏写入 `~/.bensz-skills/bugs/`，当前任务不中断，只有用户明确要求才公开上报，禁止直接修改用户已安装的 Skill 源码。
+<!-- End of canonical common constraints. -->
+
+### Skill 专属约束
+
+不得超出本 Skill description 和上方流程所声明的范围；不将未验证的信息伪装成确定结论。

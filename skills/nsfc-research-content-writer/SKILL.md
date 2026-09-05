@@ -1,45 +1,12 @@
 ---
 name: nsfc-research-content-writer
-version: 0.2.3
 description: 当用户明确要求"写/改研究内容""研究内容+创新+年度计划编排"时使用。为 NSFC 正文"（二）研究内容"写作/重构，并同步编排"特色与创新"和"三年年度研究计划"，输出可直接落到 LaTeX 模板的三个 extraTex 文件。
-author: Bensz Conan
 metadata:
   author: Bensz Conan
-  short-description: NSFC（研究内容+创新+年度计划）编排写作
-  keywords:
-    - nsfc-research-content-writer
-    - 研究内容
-    - 研究目标
-    - 技术路线
-    - 特色与创新
-    - 年度研究计划
-  triggers:
-    - 研究内容
-    - 研究目标
-    - 关键科学问题
-    - 技术路线
-    - 特色与创新
-    - 创新点
-    - 年度计划
-    - 年度研究计划
-config: skills/nsfc-research-content-writer/config.yaml
-references: skills/nsfc-research-content-writer/references/
 ---
-
 # NSFC（二）研究内容编排写作器
 
-## BenszAPI 任务工作区
-
-本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
-
-## 与 bensz-collect-bugs 的协作约定
-
-- 当用户环境中出现因本 skill 设计缺陷导致的 bug 时，优先使用 `bensz-collect-bugs` 按规范记录到 `~/.bensz-skills/bugs/`，严禁直接修改用户本地 Claude Code / Codex 中已安装的 skill 源码。
-- 若 AI 仍可通过 workaround 继续完成用户任务，应先记录 bug，再继续完成当前任务。
-- 当用户明确要求“report bensz skills bugs”等公开上报动作时，调用本地 `gh` 与 `bensz-collect-bugs`，仅上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull / clone 整个 bug 仓库。
-
-
-## 目标输出（契约）
+### 目标输出（契约）
 
 - **写入落点（3 个文件）**：
   - `extraTex/2.1.研究内容.tex`
@@ -48,24 +15,28 @@ references: skills/nsfc-research-content-writer/references/
 - **禁止改动**：`main.tex`、`extraTex/@config.tex`、任何 `.cls/.sty`
 - **编排原则**：先把 `2.1` 写成“可验证闭环”，再从 `2.1` 抽取创新点生成 `2.2`，最后把 `2.1` 的任务拆分成三年里程碑生成 `2.3`。
 
-## 参数与输出模式（建议显式提供）
+### 参数与输出模式（建议显式提供）
 
 - `project_root`：标书项目根目录（如 `projects/NSFC_Young`）
 - `output_mode`（默认 `apply`）：
   - `preview`：不直接写入文件；输出三段可复制粘贴的 LaTeX 正文草稿，并标注应写入的目标文件路径
   - `apply`：仅写入三份目标文件（见“目标输出”），不触碰其他文件
 
-## 必需输入（最小信息表）
+### 必需输入（最小信息表）
 
 - 若用户未提供，请先收集/补全：[references/info_form.md](references/info_form.md)
 
-## 写入安全约束（必须遵守）
+## 流程
 
-1. 仅编辑三份 `extraTex/2.*.tex` 文件；不得修改 `main.tex`、`extraTex/@config.tex`、任何 `.cls/.sty`
-2. 目标文件若已包含标题命令（如 `\\subsection{...}` / `\\subsubsection{...}`），**只替换正文内容**，不改标题与结构层级
-3. 信息不全时先提问补齐，不要用“看起来像真的”的细节硬写
+### 输入
 
-## 工作流（按顺序执行）
+按用户请求和配置文件提供必要输入；缺失信息应明确列出并停止依赖该输入的步骤。
+
+### 执行步骤
+
+- 当用户环境中出现因本 skill 设计缺陷导致的 bug 时，优先使用 `bensz-collect-bugs` 按规范记录到 `~/.bensz-skills/bugs/`，严禁直接修改用户本地 Claude Code / Codex 中已安装的 skill 源码。
+- 若 AI 仍可通过 workaround 继续完成用户任务，应先记录 bug，再继续完成当前任务。
+- 当用户明确要求“report bensz skills bugs”等公开上报动作时，调用本地 `gh` 与 `bensz-collect-bugs`，仅上传新增 bug 到 `huangwb8/bensz-bugs`；不要 pull / clone 整个 bug 仓库。
 
 1. **定位项目与目标文件**：确认 `project_root`，读取并仅编辑三份 `extraTex/2.*.tex` 文件；如目标文件不存在，提示用户先初始化/拷贝模板项目。
 2. **固定”子目标三件套”**：把目标拆成 3–4 个子目标（内部规划时可用 `S1–S4` 编号便于自检回溯，**此编号仅用于 AI 内部规划，禁止出现在最终 LaTeX 正文中**），并对每个子目标强制写清：
@@ -100,12 +71,6 @@ references: skills/nsfc-research-content-writer/references/
 7. **任务完成后的用户提醒**：
    - 技术路线图建议放在研究内容开头。
 
-## 验收标准（Definition of Done）
-
-- 见：[references/dod_checklist.md](references/dod_checklist.md)
-
-## 写作哲学：像人类专家一样写
-
 **两阶段工作模式**：
 
 - **规划阶段**（内部，不写入正文）：用三件套、S1–S4 编号、验证口径菜单把研究逻辑想清楚，确保每个目标都有指标、对照和数据来源。
@@ -120,8 +85,6 @@ references: skills/nsfc-research-content-writer/references/
 
 **一个判断标准**：写完后，把正文给一位不了解这个项目的同行看，他能否在不看任何框架标注的情况下，自然地理解这个研究的逻辑？如果能，写作是成功的。
 
-## 写作小抄（可选）
-
 - 子目标“三件套”示例：[references/subgoal_triplet_examples.md](references/subgoal_triplet_examples.md)
 - 创新点“相对坐标系”示例：[references/relative_coordinate_examples.md](references/relative_coordinate_examples.md)
 - 年度计划模板（确保里程碑可验收）：[references/yearly_plan_template.md](references/yearly_plan_template.md)
@@ -131,6 +94,42 @@ references: skills/nsfc-research-content-writer/references/
 - 验证口径菜单（对照/消融/外部验证/统计/泄漏防控）：[references/validation_menu.md](references/validation_menu.md)
 - 术语口径对齐表（跨章节一致）：[references/terminology_sheet.md](references/terminology_sheet.md)
 
-## 变更记录
-
 - 本技能不在本文档内维护变更历史；统一记录在根级 `CHANGELOG.md`。
+
+### 输出
+
+输出 Skill description 所承诺的交付物，并明确格式、路径和失败返回形式。
+
+### 输出管理
+
+本 Skill 的新任务中间文件统一写入 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/{skill名}/input|output|log/`。同一任务复用一个任务根目录；多 Skill 协作才创建 `shared/`。正式交付物不写入该目录，历史隐藏目录只允许显式兼容读取、迁移或清理。
+
+### 校验
+
+- 见：[references/dod_checklist.md](references/dod_checklist.md)
+
+### 失败与恢复
+
+保留错误证据和已完成产物；仅在输入、环境或外部依赖恢复后从最近的失败步骤重试。
+
+## 约束
+
+1. 仅编辑三份 `extraTex/2.*.tex` 文件；不得修改 `main.tex`、`extraTex/@config.tex`、任何 `.cls/.sty`
+2. 目标文件若已包含标题命令（如 `\\subsection{...}` / `\\subsubsection{...}`），**只替换正文内容**，不改标题与结构层级
+3. 信息不全时先提问补齐，不要用“看起来像真的”的细节硬写
+
+### 公共硬约束
+
+本块由 `docs/templates/skill-common-constraints.md` 统一维护；每个 `SKILL.md` 的 `## 约束` 必须逐字同步本块，不得在副本中改写公共规则。
+- 任务需要落盘时，使用唯一的 `./.bensz-api/task-{yyyymmdd-hhmm}-{简短描述}/` 根目录；共享材料放入 `shared/`，Skill 专属材料放入该 Skill 的 `input/`、`output/`、`log/`。
+- 正式交付物、源代码和正式计划按项目约定保存，不写入任务工作区；未经授权不覆盖、删除、迁移或远程写入。
+- 项目维护变更检查 BAC 可用性并记录需求、AI 产出、工具结果、文件改动和验证摘要；BAC 只做过程审计，不替代署名、责任或合规判断。
+- 不记录 API Key、访问令牌、密码、Cookie、环境/凭据文件、私有 Prompt、身份信息、本地用户名、主机名或不必要的大体积原始数据。
+- 文件路径必须规范化并限制在授权项目范围内；外部 URL、子进程和网络访问遵循最小权限，防止路径遍历、SSRF 和命令注入。
+- Skill 版本唯一记录在自身 `config.yaml:skill_info.version`；公开 API、协议、目录或配置变更同步文档与 `CHANGELOG.md`。
+- 仅将 Skill 或 Bensz 基础设施本身的设计缺陷交给 `bensz-collect-bugs`；先脱敏写入 `~/.bensz-skills/bugs/`，当前任务不中断，只有用户明确要求才公开上报，禁止直接修改用户已安装的 Skill 源码。
+<!-- End of canonical common constraints. -->
+
+### Skill 专属约束
+
+不得超出本 Skill description 和上方流程所声明的范围；不将未验证的信息伪装成确定结论。
